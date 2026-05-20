@@ -17,7 +17,8 @@ import json
 import csv
 from datetime import datetime
 
-
+# Import database models (unchanged)
+from database import init_db, Patient, Report, ReportItem
 
 
 # ---------------------------------------------------------------------------
@@ -179,6 +180,22 @@ def apply_mappings(parsed_items, primary_lookup):
 # PDF PARSER (unchanged from original)
 # ---------------------------------------------------------------------------
 
+# Indonesian → English gender map (case-insensitive)
+_GENDER_MAP = {
+    "pria":       "male",
+    "laki-laki":  "male",
+    "laki laki":  "male",
+    "l":          "male",
+    "wanita":     "female",
+    "perempuan":  "female",
+    "p":          "female",
+}
+
+def _normalize_gender(raw):
+    """Converts Indonesian gender string to 'male' or 'female'."""
+    return _GENDER_MAP.get(raw.lower().strip(), raw.lower().strip() or "unknown")
+
+
 def parse_qrma_pdf(file_path):
     """Extracts demographics and test parameters from the QRMA PDF."""
     data = {
@@ -198,7 +215,7 @@ def parse_qrma_pdf(file_path):
 
         data["demographics"] = {
             "name":      name_match.group(1).strip()   if name_match   else "Unknown",
-            "gender":    gender_match.group(1).strip() if gender_match else "Unknown",
+            "gender":    _normalize_gender(gender_match.group(1).strip() if gender_match else ""),
             "age":       int(age_match.group(1).strip()) if age_match  else 0,
             "figure":    figure_match.group(1).strip() if figure_match else "",
             "test_date": date_match.group(1).strip()   if date_match   else "",
@@ -256,10 +273,6 @@ def parse_qrma_pdf(file_path):
 # ---------------------------------------------------------------------------
 
 def ingest_to_db(file_path, db_session):
-    # Import database models (unchanged)
-    #have to be put here, otherwise when the CLI wrapper call this script, it will look for the db hence throws error.
-    from database import init_db, Patient, Report, ReportItem
-    
     """Orchestrates parsing and inserting data into SQLite."""
     print(f"[*] Parsing {file_path}...")
     parsed_data = parse_qrma_pdf(file_path)

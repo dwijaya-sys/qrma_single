@@ -624,8 +624,18 @@ function _showImportModal(row){
 function confirmImport(){
   if(!_importData)return;
   const row=_importData;
+  // Gender translation — handles both English (from fixed parser) and
+  // Indonesian fallback (Pria/Wanita) in case of older CSVs
+  const _genderMap={'pria':'male','laki-laki':'male','laki laki':'male','l':'male',
+                    'wanita':'female','perempuan':'female','p':'female'};
   if(row.age){const e=document.getElementById('age');if(e)e.value=row.age;}
-  if(row.gender){const e=document.getElementById('gender');if(e)e.value=row.gender.toLowerCase();}
+  if(row.gender){
+    const e=document.getElementById('gender');
+    if(e){
+      const g=row.gender.toLowerCase().trim();
+      e.value=_genderMap[g]||g;
+    }
+  }
   _ALL_FIELDS.forEach(id=>{
     if(row[id]!==undefined&&row[id]!==''){
       const e=document.getElementById(id);
