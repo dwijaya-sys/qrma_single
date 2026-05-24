@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"f:\\\\TeleTCM_Project\\\\qrma_single\" status)",
+      "Bash(git -C \"f:\\\\TeleTCM_Project\\\\qrma_single\" diff --stat)",
+      "Bash(git -C \"f:\\\\TeleTCM_Project\\\\qrma_single\" add qrma-dashboard-v2.html mappings.json parser_v3.py)",
+      "Bash(git -C \"f:\\\\TeleTCM_Project\\\\qrma_single\" diff --cached --stat)",
+      "Bash(git -C 'f:\\\\TeleTCM_Project\\\\qrma_single' commit -m ' *)"
+    ]
+  }
+}
