@@ -507,6 +507,8 @@ def load_mappings(mappings_path):
         needs_verification: True if the mapping is uncertain
         note              : human-readable explanation
         en                : English translation
+        zone_boundaries   : dict of zone ranges (fallback when PDF ref not found)
+        direction         : "higher-worse" | "lower-worse" | "bidirectional" | ""
     """
     if not os.path.exists(mappings_path):
         raise FileNotFoundError(
@@ -522,26 +524,115 @@ def load_mappings(mappings_path):
         name = entry.get("id", "").strip()
         if not name:
             continue
+
+        # Parse zone_boundaries — convert [lo, hi] arrays to (lo, hi) tuples,
+        # replacing JSON null with Python float('inf') or float('-inf')
+        raw_zb    = entry.get("zone_boundaries") or {}
+        zone_boundaries = {}
+        for zone_key, bounds in raw_zb.items():
+            if bounds and len(bounds) == 2:
+                lo = bounds[0] if bounds[0] is not None else float("-inf")
+                hi = bounds[1] if bounds[1] is not None else float("inf")
+                zone_boundaries[zone_key] = (lo, hi)
+
         lookup[name] = {
             "dashboard_id":       entry.get("dashboard_id", ""),
             "also_maps_to":       entry.get("also_maps_to", []),
             "needs_verification": entry.get("needs_verification", False),
             "note":               entry.get("note", ""),
             "en":                 entry.get("en", ""),
+            "zone_boundaries":    zone_boundaries,       # NEW in v3 update
+            "direction":          entry.get("direction", ""),  # NEW in v3 update
         }
 
     return lookup
+
+
+def _derive_zone_from_boundaries(raw_value, zone_boundaries, direction):
+    """
+    Fallback zone derivation using zone_boundaries from mappings.json.
+    Used when the PDF's Referensi Standar section doesn't contain this parameter
+    (e.g. non-standard 'Kisaran Yang Sehat' format sections in the PDF),
+    or as a secondary attempt when ref_standards data returned "unknown".
+
+    Supports three boundary structures:
+
+    1. Full 4-zone (normal + ringan + sedang + berat):
+       Checks each zone in order; returns the first match.
+
+    2. 2-zone / normal-only (only 'normal' key present):
+       Inside normal range  → "normal"
+       Outside either side  → "berat"  (covers bidirectional and simple cases)
+
+    3. 2-zone higher-worse (normal + berat keys):
+       Inside normal range  → "normal"
+       Above normal range   → "berat"
+
+    Direction-aware safe-floor extension:
+      QRMA zones only define ranges from the normal floor upward (for higher-worse)
+      or downward (for lower-worse). Values in the opposite (safe) direction have
+      no defined zone and would otherwise return "unknown". Instead:
+        higher-worse: value < normal_min  → "normal" (lower = safer)
+        lower-worse:  value > normal_max  → "normal" (higher = safer)
+
+    Returns: "normal" | "ringan" | "sedang" | "berat" | "unknown"
+    """
+    if not zone_boundaries:
+        return "unknown"
+
+    def _in(val, rng):
+        lo, hi = rng
+        return lo <= val <= hi
+
+    normal_range = zone_boundaries.get("normal")
+
+    # Direction-aware extension: handle values that fall outside all defined
+    # zones in the safe (non-concern) direction
+    if normal_range and direction:
+        lo, hi = normal_range
+        if direction == "higher-worse" and raw_value < lo:
+            # Below normal floor for a higher-worse param = healthier than normal
+            return "normal"
+        if direction == "lower-worse" and raw_value > hi:
+            # Above normal ceiling for a lower-worse param = healthier than normal
+            return "normal"
+
+    # Check normal zone
+    if normal_range and _in(raw_value, normal_range):
+        return "normal"
+
+    # If detailed zones are available (ringan/sedang/berat), check them in order
+    has_detail = any(k in zone_boundaries for k in ("ringan", "sedang", "berat"))
+    if has_detail:
+        for label in ("ringan", "sedang", "berat"):
+            rng = zone_boundaries.get(label)
+            if rng and _in(raw_value, rng):
+                return label
+        # Value exists but fell outside all defined zones
+        return "unknown"
+
+    # No detailed zones — outside normal = berat (handles bidirectional and 2-zone cases)
+    if normal_range:
+        return "berat"
+
+    return "unknown"
 
 
 def apply_mappings(parsed_items, primary_lookup, ref_standards):
     """
     Translates parsed PDF items into dashboard field values + zone labels.
 
+    Zone derivation priority (new in v3 update):
+      1. PDF Referensi Standar (ref_standards dict) — auto-extracted, preferred
+      2. mappings.json zone_boundaries (fallback) — for parameters whose PDF
+         section uses non-standard 'Kisaran Yang Sehat' format instead of the
+         standard (-)/(+)/(++)/+++) zone table
+
     For each item:
       1. Looks up the Indonesian name in primary_lookup.
       2. Writes raw value to all target field IDs (primary + also_maps_to).
-      3. Looks up zone boundaries in ref_standards.
-      4. Derives zone label (normal/ringan/sedang/berat/unknown).
+      3. Tries zone lookup from ref_standards first.
+      4. Falls back to zone_boundaries from mappings.json if ref_standards miss.
       5. Writes zone label to corresponding _zone field IDs.
 
     Returns:
@@ -579,9 +670,38 @@ def apply_mappings(parsed_items, primary_lookup, ref_standards):
             if target_id not in mapped:
                 mapped[target_id] = raw_value
 
-        # Derive zone from Referensi Standar data
-        param_zones = ref_standards.get(param_name)
-        zone_label  = derive_zone(raw_value, param_zones) if param_zones else "unknown"
+        # ── Zone derivation — two-tier priority ──────────────────────────────
+        # Tier 1: PDF Referensi Standar (auto-extracted, covers standard sections)
+        # Only use ref_standards if it contains actual zone boundary data —
+        # a dict with only a "direction" key (no zone ranges) must fall through
+        # to Tier 2, otherwise the fallback never fires for non-standard sections.
+        param_zones   = ref_standards.get(param_name)
+        has_zone_data = param_zones and any(
+            k in param_zones for k in ("normal", "ringan", "sedang", "berat")
+        )
+
+        if has_zone_data:
+            zone_label = derive_zone(raw_value, param_zones)
+            # If ref_standards had zone data but the value fell outside all
+            # defined ranges (returns "unknown"), try the mappings.json fallback.
+            # This handles cases where the PDF only extracted a partial zone set
+            # (e.g. only the normal zone was parsed, ringan/sedang/berat missed).
+            if zone_label == "unknown":
+                fallback_boundaries = entry.get("zone_boundaries", {})
+                direction           = entry.get("direction", "")
+                if fallback_boundaries:
+                    zone_label = _derive_zone_from_boundaries(
+                        raw_value, fallback_boundaries, direction
+                    )
+        else:
+            # Tier 2: mappings.json zone_boundaries fallback (covers non-standard
+            # sections like 'Kisaran Yang Sehat' format in Gula Dalam Darah,
+            # Kualitas Fisik Dasar, etc.)
+            fallback_boundaries = entry.get("zone_boundaries", {})
+            direction           = entry.get("direction", "")
+            zone_label = _derive_zone_from_boundaries(
+                raw_value, fallback_boundaries, direction
+            )
 
         # Write zone label to each target's zone column (first occurrence wins)
         for target_id in targets:
