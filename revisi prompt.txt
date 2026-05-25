@@ -1,0 +1,90 @@
+Read CLAUDE.md and JSON_HANDOVER.md.
+Pipeline is complete and approved for both male and female patients.
+Starting dashboard v3 normalization layer — update qrma-dashboard-v2.html
+to read zone columns from JSON payload via importer.js and display
+1–10 zone-based scores with 4-colour coding.
+
+
+-- Revisi Prompt
+
+The token limit is hit because Claude Code is trying to generate the entire 75KB HTML in one response. The fix is two things: **export intermediate work to files as it goes**, and **break the job into surgical tasks** that each touch one function at a time.
+
+---
+
+## Step 1 — Export Current State First (no changes, read only)
+
+Run this in Claude Code before anything else:
+
+```
+Read qrma-dashboard-v2.html and extract the following into separate files in 91_Documentations\:
+1. All JavaScript functions → save as 91_Documentations\dashboard-v2-js-reference.js
+2. The calcAll() function only → save as 91_Documentations\calcAll-reference.js
+3. All module calculator functions (cBioAge, cOx, cTx, cMt, cCr, cNt, cSk, buildAction) → save as 91_Documentations\module-calculators-reference.js
+
+Do not modify the HTML. Read and extract only.
+```
+
+This gives you a recoverable reference and keeps the tasks small.
+
+---
+
+## Step 2 — Divide the Refactor Into These Tasks
+
+Give Claude Code **one task at a time**, each as a separate message:
+
+```
+TASK 1: Create 03_Scripts\zone-scoring.js
+A standalone JS module containing only:
+- ZONE_SCORES constant
+- scoreFromZone(zone_label) function
+- getZoneColor(zone_label) function
+- getZoneBadge(zone_label) function
+No HTML dependency. Save to 03_Scripts\zone-scoring.js
+```
+
+```
+TASK 2: In qrma-dashboard-v2.html, find the confirmImport() function only.
+Add zone data reading after the existing field population — read {field}_zone
+values from the imported CSV/JSON and store them in a window.zoneData object.
+Use str_replace on the confirmImport() function only. Do not touch any other function.
+```
+
+```
+TASK 3: In qrma-dashboard-v2.html, replace the cBioAge() function only
+with a zone-based version using window.zoneData. 
+Use str_replace. Touch nothing else.
+```
+
+```
+TASK 4: Replace cOx() only. [same pattern]
+TASK 5: Replace cTx() only.
+TASK 6: Replace cMt() only.
+TASK 7: Replace cCr() only.
+TASK 8: Replace cNt() only.
+TASK 9: Replace cSk() only.
+TASK 10: Update buildAction() only.
+```
+
+---
+
+## The Key Rule to Tell Claude Code
+
+Add this to the start of every task message:
+
+```
+Work incrementally. Use str_replace to modify the existing file.
+Do not rewrite the entire HTML. If your output will exceed 200 lines,
+split it and tell me to say "continue" for the next part.
+Save all intermediate outputs to files before proceeding.
+```
+
+---
+
+## If It Still Hits the Limit Mid-Task
+
+```
+Stop. Save what you have to a file. Tell me exactly where you stopped.
+I will say "continue from [function name]" in the next message.
+```
+
+This way the context is never lost even if a task is interrupted.
