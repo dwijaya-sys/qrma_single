@@ -485,12 +485,30 @@ def parse_qrma_pdf(file_path):
 
 def _flush_ref_buffer(text_block, ref_standards_dict):
     """
-    Parses a complete Referensi Standar text block and merges results
-    into the shared ref_standards_dict.
-    Later entries overwrite earlier ones for duplicate param names.
+    Parses a Referensi Standar text block and merges results into ref_standards_dict.
+
+    Merge strategy: most-complete-wins.
+    When the same parameter name appears in multiple PDF sections, keep whichever
+    extraction produced more zone keys (normal / ringan / sedang / berat).
+
+    This handles two known cases:
+    1. "Kekentalan Darah" (bv) — appears in two sections with DIFFERENT scales.
+       Both have 4 zones, so the FIRST (correct 48–73 scale) is kept. ✓
+    2. Parameters where the first PDF section has an incomplete Referensi Standar
+       block (0–2 zones extracted) and a later section has the full 4-zone table.
+       The later, more complete extraction wins. ✓
     """
+    def _zone_count(zones):
+        return sum(1 for k in ("normal", "ringan", "sedang", "berat") if k in zones)
+
     parsed = parse_referensi_standar(text_block)
-    ref_standards_dict.update(parsed)
+    for param_name, zones in parsed.items():
+        if param_name not in ref_standards_dict:
+            ref_standards_dict[param_name] = zones
+        else:
+            # Replace only if the new extraction is strictly more complete
+            if _zone_count(zones) > _zone_count(ref_standards_dict[param_name]):
+                ref_standards_dict[param_name] = zones
 
 
 # =============================================================================
@@ -853,14 +871,12 @@ def export_dashboard_csv(parsed_data, primary_lookup, output_csv_path):
     row = {fid: mapped.get(fid, "") for fid in DASHBOARD_RAW_FIELDS}
     row.update({col: zones.get(col, "unknown") for col in DASHBOARD_ZONE_FIELDS})
 
-    # Write CSV (append mode)
+    # Write CSV — always overwrite, one row per run
     os.makedirs(os.path.dirname(os.path.abspath(output_csv_path)), exist_ok=True)
-    file_exists = os.path.exists(output_csv_path)
 
-    with open(output_csv_path, "a", newline="", encoding="utf-8") as f:
+    with open(output_csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=DASHBOARD_FIELDS, extrasaction="ignore")
-        if not file_exists:
-            writer.writeheader()
+        writer.writeheader()
         writer.writerow(row)
 
     print(f"[+] CSV row written -> {output_csv_path}")

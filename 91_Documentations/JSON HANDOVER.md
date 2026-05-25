@@ -471,30 +471,108 @@ SQLite import blocking CSV export   Lazy import of database module      FIXED v3
 
 0–100 scoring vs 1–10 zones        Zone-based 1–10 planned for        PENDING
                                     dashboard v3 (next phase)
+
+SCRIPT_DIR used before definition   SCRIPT_DIR must be defined BEFORE  FIXED
+in csv_exporter_v2.py               sys.path.insert() and before any   2026-05-25
+(NameError on import)               project imports. Order must be:
+                                    SCRIPT_DIR → sys.path.insert →
+                                    from parser_v3 import
+
+CSV append mode caused stale rows   Changed export_dashboard_csv()     FIXED
+across re-runs of same patient      from "a" (append) to "w" (write)  2026-05-25
+                                    — always overwrites, one row per run
+
+bv_zone = "berat" for value 61.274  Root cause: "Kekentalan Darah"    FIXED
+which sits in normal range 48–65    appears in two PDF sections with   2026-05-25
+                                    different scales (48–73 and 4–7).
+                                    _flush_ref_buffer used dict.update()
+                                    (last-wins) so wrong zones from
+                                    second section overwrote correct ones.
+                                    Fix: most-complete-wins merge —
+                                    keep whichever extraction has more
+                                    zone keys. Tied counts keep first.
+
+mt-tg_zone = "unknown" after        Caused by first-occurrence-wins    FIXED
+first-occurrence-wins fix           fix above — mt-tg source param's   2026-05-25
+                                    first occurrence had 0 zones;
+                                    correct zones were in later section.
+                                    most-complete-wins resolves both
+                                    bugs simultaneously.
+
+sk-sc zone expectation wrong        sk-sc = 2.69 is correctly "sedang" CONFIRMED
+in skill docs (expected "berat")    per PDF Referensi Standar.        2026-05-25
+                                    berat zone only applies below 1.453.
+                                    2.69 falls in sedang (1.453–2.879).
+                                    Tester + Reviewer skill docs updated.
 ```
 
 ---
 
-## 12. NEXT IMMEDIATE ACTIONS
+## 12. PIPELINE DECISIONS — 2026-05-25
 
 ```
-PRIORITY   ACTION                                                    FILE
-1          Verify all updated files deployed to project folder       —
-2          Run: python csv_exporter_v2.py --pdf "QRMA_Ridwan..."    csv_exporter_v2.py
-           Confirm: Fields with zone data = 60/60
-3          Open Claude Code: cd F:\TeleTCM_Project\qrma_single      —
-                             claude
-           CLAUDE.md auto-loads full project context
-4          Dashboard normalization layer                             qrma-dashboard-v3.html
+DECISION-001: Three-role QA workflow validated on Ridwan baseline
+  Operator → Tester → Reviewer ran successfully.
+  Reviewer correctly REJECTed run due to bv zone bug.
+  After fix: full APPROVE cycle completed.
+  Fixture: 01_Data\json\fixtures\ridwan_2025-11-10.json is authoritative baseline.
+
+DECISION-002: _flush_ref_buffer merge strategy = most-complete-wins
+  Rationale: some parameters appear in multiple PDF sections.
+  - Duplicate with same scale → first wins (correct for bv)
+  - Duplicate where first has incomplete zones → later wins (correct for mt-tg)
+  Rule: replace only when new extraction has STRICTLY MORE zone keys.
+
+DECISION-003: CSV write mode = overwrite (not append)
+  One run = one patient = one row.
+  Re-running the same patient should produce a clean single-row file.
+  Append mode is not needed — no multi-patient batch use case in this pipeline.
+
+DECISION-004: sk-sc "sedang" is correct, not "berat"
+  The PDF's own Referensi Standar for Tingkat Kolagen Kulit defines:
+    berat:  < 1.453
+    sedang: 1.453–2.879
+    ringan: 2.879–4.471
+    normal: 4.471–6.079
+  Ridwan 2.69 → sedang is correct. Tester and Reviewer skill docs updated.
+
+DECISION-005: PYTHONIOENCODING=utf-8 required on Windows
+  Greek α character in unmapped param list (α-Asam linolenat) causes
+  UnicodeEncodeError in Windows console. Does not affect file output.
+  Fix: set as system environment variable (permanent).
+
+DECISION-006: Zone spot-check reference values (confirmed from approved fixture)
+  bv    → normal  (61.274 inside 48.264–65.371)
+  cp    → normal  (67.24  inside 56.749–67.522)
+  art   → ringan  (0.96   above normal 0.327–0.937)
+  sk-sc → sedang  (2.69   inside 1.453–2.879)
+  ph    → normal  (inside 3.156–3.694)
+```
+
+---
+
+## 13. NEXT IMMEDIATE ACTIONS
+
+```
+PRIORITY   ACTION                                                    FILE                STATUS
+1          Run final Reviewer APPROVE cycle                         current_run.yaml    PENDING
+           run_id: run_ridwan_20260525_final
+2          Promote approved JSON to fixture                         01_Data\json\        PENDING
+           (already done — copy command run)                        fixtures\
+3          Dashboard normalization layer (v3 HTML)                  qrma-dashboard-v3.html PENDING
            - Read zone columns from CSV on import
            - Implement ZONE_SCORES = {normal:9, ringan:6, sedang:3, berat:1}
-           - Replace minified scoring functions with zone-driven logic
+           - Replace minified 0–100 scoring with zone-driven logic
            - 4-colour zone display per parameter chip
-5          Test end-to-end: import CSV → all zones display → scores correct
+4          Test with second patient PDF                             —                   PENDING
+           (confirms pipeline generalises beyond Ridwan)
+5          Update CLAUDE.md with session-2 decisions                CLAUDE.md           PENDING
 ```
 
 ---
 
 *End of handover document.*
-*Session date: 2026-05-24*
+*Session 1 date: 2026-05-24*
+*Session 2 date: 2026-05-25*
 *Prepared for: Claude Code + Engineering Plugin handoff*
+

@@ -109,10 +109,10 @@ If `baseline_fixture` is set in current_run.yaml, compare against it instead.
 
 | Field | Expected zone | Rationale |
 |---|---|---|
-| `bv` (~61.274) | `normal` | Range 48.264–65.371 |
+| `bv` (~61.274) | `normal` | Range 48.264–65.371 (higher-worse; 61.274 inside normal) |
 | `cp` (~67.24) | `normal` | Range 56.749–67.522 |
 | `art` (~0.96) | `ringan` | Above normal 0.327–0.937 |
-| `sk-sc` (~2.69) | `berat` | Below normal 4.471–6.079 (lower is worse) |
+| `sk-sc` (~2.69) | `sedang` | PDF zones: berat <1.453, sedang 1.453–2.879, ringan 2.879–4.471, normal 4.471–6.079 |
 | `ph` | `normal` | Range 3.156–3.694 |
 
 → Any spot-check failure: BLOCKER

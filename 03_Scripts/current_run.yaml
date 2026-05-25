@@ -9,12 +9,12 @@
 # =============================================================================
 
 # ── Run identity ──────────────────────────────────────────────────────────────
-run_id:       "run_ridwan_20260525_1700"
+run_id:       "run_kamiyanti_20260525_final"
 run_date:     "2026-05-25"
-patient_name: "ridwan"
+patient_name: "kamiyanti"
 
 # ── Input ─────────────────────────────────────────────────────────────────────
-pdf_file: "QRMA_Ridwan_November_21.pdf"   # relative to project root
+pdf_file: "Kamiyanti QRMA November.pdf"   # relative to project root
 
 # ── Executables (all in 03_Scripts\) ─────────────────────────────────────────
 python_exe:    "python"
@@ -23,18 +23,18 @@ json_exporter: "03_Scripts\\json_exporter.py"
 mappings_file: "03_Scripts\\mappings.json"
 
 # ── Expected outputs ──────────────────────────────────────────────────────────
-output_csv:  "01_Data\\csv\\ridwan_2025-11-10.csv"
-output_json: "01_Data\\json\\ridwan_2025-11-10.json"
+output_csv:  "01_Data\\csv\\kamiyanti_2025-11-11.csv"
+output_json: "01_Data\\json\\kamiyanti_2025-11-11.json"
 
 # ── Report paths (90_Pipeline_Reports\) ──────────────────────────────────────
-operator_report: "90_Pipeline_Reports\\operator\\run_ridwan_20260525_operator.md"
-tester_report:   "90_Pipeline_Reports\\tester\\run_ridwan_20260525_tester.md"
-reviewer_report: "90_Pipeline_Reports\\reviewer\\run_ridwan_20260525_reviewer.md"
+operator_report: "90_Pipeline_Reports\\operator\\run_kamiyanti_20260525_operator.md"
+tester_report:   "90_Pipeline_Reports\\tester\\run_kamiyanti_20260525_tester.md"
+reviewer_report: "90_Pipeline_Reports\\reviewer\\run_kamiyanti_20260525_reviewer.md"
 logs_dir:        "90_Pipeline_Reports\\logs\\"
 
 # ── Baseline fixture ──────────────────────────────────────────────────────────
 # Set to "" on first run. After Reviewer APPROVEs, promote JSON to fixtures\.
-baseline_fixture: "01_Data\\json\\fixtures\\ridwan_2025-11-10.json"
+baseline_fixture: "01_Data\\json\\fixtures\\kamiyanti_2025-11-11.json"
 
 # ── Quality gates ─────────────────────────────────────────────────────────────
 expected_fields_populated: 60

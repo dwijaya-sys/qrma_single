@@ -88,9 +88,9 @@ Each warning must be traceable to:
 
 | Parameter | Raw value | Expected zone | Direction |
 |---|---|---|---|
-| `bv` | 48–65 = normal | `normal` | lower is worse; in range = good |
-| `tx-pb` | very low = good | `normal` | higher exposure = worse; low score = good |
-| `sk-sc` | below 4.471 | `berat` | lower collagen = worse |
+| `bv` | 48–65 = normal | `normal` | higher-worse; 61.274 inside range |
+| `tx-pb` | very low = good | `normal` | higher-worse; low score = safe |
+| `sk-sc` | 2.69 | `sedang` | lower-worse; PDF zones: berat <1.453, sedang 1.453–2.879 |
 
 → Zone contradicts expected direction: SCHEMA_RISK
 

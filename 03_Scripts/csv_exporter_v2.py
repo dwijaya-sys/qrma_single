@@ -32,29 +32,31 @@ import re
 import sys
 from datetime import datetime
 
-# ---------------------------------------------------------------------------
-# Import core logic from parser_v3.
-# csv_exporter_v2 has no database dependency — parser_v3's lazy import ensures
-# database.py is only loaded when ingest_to_db() is called, which never happens
-# from this file.
-# ---------------------------------------------------------------------------
-try:
-    from parser_v3 import parse_qrma_pdf, load_mappings, export_dashboard_csv
-except ModuleNotFoundError:
-    print("[!] Error: parser_v3.py not found.")
-    print("    Both csv_exporter_v2.py and parser_v3.py must be in 03_Scripts/.")
-    sys.exit(1)
-
-
 # =============================================================================
 # DEFAULTS
 # =============================================================================
 
-# Script lives in 03_Scripts/ — project root is one level up
-SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
-
+# Script lives in 03_Scripts/ — project root is one level up.
+# Defined here (before the import block) so sys.path can be patched first.
+SCRIPT_DIR       = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT     = os.path.dirname(SCRIPT_DIR)
 DEFAULT_MAPPINGS = os.path.join(SCRIPT_DIR, "mappings.json")
+
+# ---------------------------------------------------------------------------
+# Import core logic from parser_v3.
+# sys.path is patched so the import works whether the script is invoked from
+# the project root (python 03_Scripts\csv_exporter_v2.py) or from inside
+# 03_Scripts directly (python csv_exporter_v2.py).
+# ---------------------------------------------------------------------------
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
+
+try:
+    from parser_v3 import parse_qrma_pdf, load_mappings, export_dashboard_csv
+except ModuleNotFoundError:
+    print("[!] Error: parser_v3.py not found.")
+    print(f"    Expected: {SCRIPT_DIR}\\parser_v3.py")
+    sys.exit(1)
 
 
 # =============================================================================
