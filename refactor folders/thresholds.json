@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedFrom": ["file:21", "file:53"],
+  "notes": [
+    "Thresholds are split into module-level alert rules, parameter-level cut points, and shared special-case logic.",
+    "Where the current single-file app uses raw legacy ranges, preserve behavior in calculator code first, then normalize in a later pass.",
+    "Threshold values below are intended as the refactor baseline aligned to the module specification."
+  ],
+  "sharedRules": {
+    "evidencePriority": {
+      "well_supported": 1,
+      "needs_lab_confirmation": 2,
+      "exploratory": 3
+    },
+    "severityPriority": {
+      "high": 1,
+      "medium": 2,
+      "low": 3,
+      "info": 4
+    },
+    "waistCircumferenceCm": {
+      "male": { "flagAtOrAbove": 90 },
+      "female": { "flagAtOrAbove": 80 },
+      "note": "Asian-specific IDF thresholds for Indonesian users."
+    },
+    "sharedInputs": {
+      "electrolytes.magnesium": ["M5.7", "M6.2"],
+      "electrolytes.potassium": ["M5.6", "M6.3"],
+      "antioxidants.glutathione": ["M2.1"],
+      "antioxidants.coq10": ["M2.2"],
+      "antioxidants.vitaminC": ["M2.3", "M6.7"],
+      "antioxidants.vitaminE": ["M2.4", "M6.9"],
+      "skin.skinFreeRadicals": ["M2.6"]
+    }
+  },
+  "modules": {
+    "M1": {
+      "alerts": {
+        "bioAgeGapYears": { "flagAbove": 3 },
+        "multisystemStressIndex": { "flagAtOrAbove": 2 },
+        "pillarLowConcern": { "flagAtOrBelow": 3 }
+      },
+      "derived": {
+        "bioAgeGapFormula": "bioAgeYears - chronologicalAgeYears",
+        "multisystemStressIndex": "count(pillarScore <= 4)"
+      }
+    },
+    "M2": {
+      "parameters": {
+        "M2.1": { "key": "glutathione", "direction": "lower_is_worse", "flagAtOrBelow": 4, "weight": 0.25 },
+        "M2.2": { "key": "coq10", "direction": "lower_is_worse", "flagAtOrBelow": 4, "weight": 0.20 },
+        "M2.3": { "key": "vitaminC", "direction": "lower_is_worse", "flagAtOrBelow": 4, "weight": 0.20 },
+        "M2.4": { "key": "vitaminE", "direction": "lower_is_worse", "flagAtOrBelow": 4, "weight": 0.15 },
+        "M2.5": { "key": "selenium", "direction": "lower_is_worse", "flagAtOrBelow": 4, "weight": 0.10 },
+        "M2.6": { "key": "skinFreeRadicalLevel", "direction": "higher_is_worse", "flagAtOrAbove": 7, "weight": 0.50, "invertedForConcern": true }
+      },
+      "derived": {
+        "antioxidantReserve": { "alertIfBelow": 50 },
+        "proOxidantLoad": { "alertIfAbove": 60 }
+      }
+    },
+    "M3": {
+      "parameters": {
+        "M3.1": { "key": "lead", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M3.2": { "key": "mercury", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M3.3": { "key": "cadmium", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M3.4": { "key": "arsenic", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M3.5": { "key": "stimulantExposure", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M3.6": { "key": "tobaccoNicotine", "direction": "lower_is_worse", "flagAtOrBelow": 4, "alwaysAlertIndividually": true },
+        "M3.7": { "key": "pesticideResidue", "direction": "lower_is_worse", "flagAtOrBelow": 4 }
+      },
+      "derived": {
+        "heavyMetalIndex": { "alertIfAtOrAbove": 2 },
+        "lifestyleBurden": { "alertIfAtOrAbove": 2 }
+      }
+    },
+    "M4": {
+      "parameters": {
+        "M4.1": { "key": "triglycerideImbalance", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M4.2": { "key": "urineGlucoseCoefficient", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M4.3": { "key": "insulinSecretionCoefficient", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M4.4": { "key": "fatMetabolismImbalance", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M4.5": {
+          "key": "bmi",
+          "direction": "higher_is_worse",
+          "overweightAtOrAbove": 25,
+          "obeseAtOrAbove": 30,
+          "asianContextNote": "BMI 23 may be metabolically relevant in Asian populations; retain as optional secondary warning, not primary alert."
+        },
+        "M4.6": { "key": "waistCircumference", "direction": "higher_is_worse", "usesSharedRule": "waistCircumferenceCm" }
+      },
+      "derived": {
+        "glycemicBurden": { "alertIfAtOrBelow": 4 },
+        "lipidBurden": { "alertIfAtOrBelow": 4 },
+        "metSynCriteriaCount": { "alertIfAtOrAbove": 3 }
+      }
+    },
+    "M5": {
+      "parameters": {
+        "M5.1": { "key": "cholesterolPlaqueSignal", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M5.2": { "key": "vascularFlexibility", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M5.3": { "key": "leftVentricularEjectionResistance", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M5.4": { "key": "uricAcid", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M5.5": { "key": "proteinuriaIndex", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M5.6": { "key": "potassium", "direction": "lower_is_worse", "flagAtOrBelow": 4, "sharedInputKey": "electrolytes.potassium" },
+        "M5.7": { "key": "magnesium", "direction": "lower_is_worse", "flagAtOrBelow": 4, "sharedInputKey": "electrolytes.magnesium" }
+      },
+      "derived": {
+        "cardiacIndex": { "alertIfAtOrBelow": 4 },
+        "cardiorenalIndex": { "alertIfAtOrBelow": 4 },
+        "singleParameterEscalation": { "alertIfAnyAtOrBelow": 3 }
+      }
+    },
+    "M6": {
+      "parameters": {
+        "M6.1": { "key": "zinc", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M6.2": { "key": "magnesium", "direction": "lower_is_worse", "flagAtOrBelow": 4, "sharedInputKey": "electrolytes.magnesium" },
+        "M6.3": { "key": "potassium", "direction": "lower_is_worse", "flagAtOrBelow": 4, "sharedInputKey": "electrolytes.potassium" },
+        "M6.4": { "key": "iodine", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M6.5": { "key": "silicon", "direction": "lower_is_worse", "flagAtOrBelow": 4, "uiWarning": "Evidence for silicon as a clinical biomarker is very limited. This score should not be used for clinical decision-making." },
+        "M6.6": { "key": "vitaminB6", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M6.7": { "key": "vitaminC", "direction": "lower_is_worse", "flagAtOrBelow": 4, "sharedInputKey": "antioxidants.vitaminC" },
+        "M6.8": { "key": "vitaminD3", "direction": "lower_is_worse", "flagAtOrBelow": 4, "alwaysMapToLab": "LAB_25OH_VITAMIN_D" },
+        "M6.9": { "key": "vitaminE", "direction": "lower_is_worse", "flagAtOrBelow": 4, "sharedInputKey": "antioxidants.vitaminE" },
+        "M6.10": { "key": "folate", "direction": "lower_is_worse", "flagAtOrBelow": 4 }
+      },
+      "derived": {
+        "sufficiencyScore": { "alertIfBelow": 60 },
+        "deficientCount": { "alertIfAtOrAbove": 4 }
+      }
+    },
+    "M7": {
+      "parameters": {
+        "M7.1": { "key": "skinCollagen", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M7.2": { "key": "skinElasticity", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M7.3": { "key": "tewl", "direction": "higher_is_worse_for_barrier", "flagAtOrBelow": 4, "invertedInBarrierFunction": true },
+        "M7.4": {
+          "key": "sebum",
+          "direction": "bidirectional",
+          "veryLowAtOrBelow": 3,
+          "highAtOrAbove": 8,
+          "specialHandling": "map to distinct alert types: low_sebum_dry_barrier and high_sebum_oil_imbalance"
+        },
+        "M7.5": { "key": "melanin", "direction": "higher_is_worse_for_collagen_context", "flagAtOrAbove": 7, "invertedInCollagenIndex": true },
+        "M7.6": { "key": "skinSensitivity", "direction": "higher_is_worse", "flagAtOrAbove": 7, "invertedInBarrierFunction": true },
+        "M7.7": { "key": "eyeCollagen", "direction": "lower_is_worse", "flagAtOrBelow": 4 },
+        "M7.8": { "key": "jointSystemicCollagen", "direction": "lower_is_worse", "flagAtOrBelow": 4 }
+      },
+      "derived": {
+        "collagenIndex": { "alertIfBelow": 50 },
+        "barrierFunction": { "alertIfBelow": 50 }
+      }
+    },
+    "M8": {
+      "aggregator": {
+        "disclaimer": { "required": true, "dismissable": false },
+        "maxFoodActions": 7,
+        "sortOrder": ["evidencePriority", "severityPriority", "moduleId", "paramId"],
+        "deduplicate": {
+          "labTests": true,
+          "foodActions": true,
+          "alertsBy": ["moduleId", "paramId", "alertType"]
+        },
+        "alertObjectShape": [
+          "moduleId",
+          "paramId",
+          "alertType",
+          "severity",
+          "evidenceLevel",
+          "findingCode",
+          "message",
+          "labTestIds",
+          "foodActionIds"
+        ]
+      }
+    }
+  }
+}

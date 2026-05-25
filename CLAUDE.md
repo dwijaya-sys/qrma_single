@@ -10,6 +10,40 @@
 
 ---
 
+## Folder Structure
+
+```
+qrma_single\                          ← project root
+├── .claude\skills\operator\         ← QRMA_SKILL_operator.md
+│               \tester\             ← QRMA_SKILL_tester.md
+│               \reviewer\           ← QRMA_SKILL_reviewer.md
+├── 01_Data\csv\                      ← CSV pipeline outputs
+│           \json\                   ← JSON pipeline outputs
+│           \json\fixtures\          ← approved baseline fixtures
+├── 02_Pics\
+├── 03_Scripts\                       ← ALL Python scripts + mappings.json + current_run.yaml
+│   ├── parser_v3.py                  (active parser)
+│   ├── csv_exporter_v2.py            (active CSV exporter)
+│   ├── json_exporter.py              (JSON exporter — pipeline step 3)
+│   ├── database.py                   (stable, shared — do not version)
+│   ├── mappings.json                 (bilingual ID→field mapping)
+│   └── current_run.yaml              (single source of truth per run)
+├── 90_Pipeline_Reports\operator\    ← operator run reports
+│                      \tester\      ← tester validation reports
+│                      \reviewer\    ← reviewer approval reports
+│                      \logs\        ← console logs from script runs
+├── 91_Documentations\               ← handover docs, spec files
+├── 99_Archive\                       ← old versions
+├── refactor folders\                 ← DO NOT TOUCH (temporary working area)
+├── qrma-dashboard-v2.html            ← active dashboard (root level)
+└── CLAUDE.md                         ← this file (root level, auto-loaded)
+```
+
+**Versioning rule:** Never overwrite previous versions of scripts.
+Create new version suffix instead (e.g. `parser_v4.py`, `csv_exporter_v3.py`).
+
+---
+
 ## Non-Negotiable Product Rules
 
 These rules must be preserved in every change, refactor, or new feature:

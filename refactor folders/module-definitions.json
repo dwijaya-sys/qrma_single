@@ -1,0 +1,319 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedFrom": ["file:21", "file:53"],
+  "notes": [
+    "This file defines module-level metadata for the refactored QRMA dashboard.",
+    "Scoring formulas should live in calculator modules; this file describes contracts, IDs, inputs, derived outputs, and alert intent.",
+    "All language must remain screening-oriented and hypothesis-generating only."
+  ],
+  "modules": [
+    {
+      "id": "M1",
+      "slug": "biological-age",
+      "name": "Biological Age Multisystem Stress",
+      "uiLabel": "Biological Age Estimate",
+      "category": "overview",
+      "evidenceStrength": "exploratory_formula_well_supported_concept",
+      "goal": "Estimate whether the body appears biologically older or younger than chronological age and identify which major system is under the most stress.",
+      "inputMode": "mixed",
+      "inputs": [
+        { "paramId": "M1.1", "key": "chronologicalAge", "source": "shared.demographics.age", "type": "number", "unit": "years" },
+        { "paramId": "M1.2", "key": "cardiovascularSystemScore", "source": "computed.m1.cardioPillar", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M1.3", "key": "metabolicSystemScore", "source": "computed.m1.metabolicPillar", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M1.4", "key": "oxidativeStressScore", "source": "computed.m1.oxidativePillar", "type": "number", "unit": "0-10 normalized proxy" }
+      ],
+      "derivedOutputs": [
+        { "paramId": "M1.5", "key": "bioAgeGapYears", "type": "number", "unit": "years" },
+        { "paramId": "M1.6", "key": "multisystemStressIndex", "type": "integer", "unit": "flag count 0-3" }
+      ],
+      "alertLogic": {
+        "primary": [
+          "bioAgeGapYears > 3",
+          "multisystemStressIndex >= 2",
+          "any pillar score <= 3"
+        ],
+        "labelOrder": ["normal", "monitor", "flagged"]
+      },
+      "charts": ["horizontal_bullet_gauge", "three_segment_pillar_bar"],
+      "developerNotes": [
+        "Bio Age Gap formula is illustrative and not clinically validated.",
+        "Cap displayed biological age to prevent extreme output drift.",
+        "Use hedged wording such as 'pattern suggests accelerated multisystem stress'."
+      ]
+    },
+    {
+      "id": "M2",
+      "slug": "oxidative-stress-recovery",
+      "name": "Oxidative Stress Recovery",
+      "uiLabel": "Antioxidant/Oxidant Balance",
+      "category": "stress-response",
+      "evidenceStrength": "exploratory",
+      "goal": "Estimate the balance between antioxidant reserve and pro-oxidant load and identify depleted antioxidant cofactors.",
+      "inputMode": "direct_and_shared",
+      "inputs": [
+        { "paramId": "M2.1", "key": "glutathione", "source": "shared.antioxidants.glutathione", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M2.2", "key": "coq10", "source": "shared.antioxidants.coq10", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M2.3", "key": "vitaminC", "source": "shared.antioxidants.vitaminC", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M2.4", "key": "vitaminE", "source": "shared.antioxidants.vitaminE", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M2.5", "key": "selenium", "source": "moduleInputs.M2.selenium", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M2.6", "key": "skinFreeRadicalLevel", "source": "shared.skin.skinFreeRadicals", "type": "number", "unit": "0-10 normalized proxy" }
+      ],
+      "derivedOutputs": [
+        { "paramId": "M2.7", "key": "antioxidantReserve", "type": "number", "unit": "0-100" },
+        { "paramId": "M2.8", "key": "proOxidantLoad", "type": "number", "unit": "0-100" }
+      ],
+      "alertLogic": {
+        "primary": [
+          "antioxidantReserve < 50",
+          "proOxidantLoad > 60",
+          "any antioxidant parameter <= 4"
+        ],
+        "specialCases": [
+          "skinFreeRadicalLevel is inverted: higher is worse"
+        ]
+      },
+      "charts": ["stacked_horizontal_balance_bar", "nutrient_status_grid"],
+      "developerNotes": [
+        "Keep AR and PL separate in state and rendering.",
+        "Document weights clearly as QRMA-app convention.",
+        "Do not convert this module into a disease label."
+      ]
+    },
+    {
+      "id": "M3",
+      "slug": "toxic-exposure-flags",
+      "name": "Toxic Exposure Flags",
+      "uiLabel": "Environmental & Lifestyle Exposure Flags",
+      "category": "exposure",
+      "evidenceStrength": "mixed",
+      "goal": "Flag potential heavy metal and lifestyle toxicant exposure patterns and prompt confirmatory testing.",
+      "inputMode": "direct",
+      "inputs": [
+        { "paramId": "M3.1", "key": "lead", "source": "moduleInputs.M3.lead", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M3.2", "key": "mercury", "source": "moduleInputs.M3.mercury", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M3.3", "key": "cadmium", "source": "moduleInputs.M3.cadmium", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M3.4", "key": "arsenic", "source": "moduleInputs.M3.arsenic", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M3.5", "key": "stimulantExposure", "source": "moduleInputs.M3.stimulantExposure", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M3.6", "key": "tobaccoNicotine", "source": "moduleInputs.M3.tobaccoNicotine", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M3.7", "key": "pesticideResidue", "source": "moduleInputs.M3.pesticideResidue", "type": "number", "unit": "0-10 normalized proxy" }
+      ],
+      "derivedOutputs": [
+        { "paramId": "M3.8", "key": "heavyMetalIndex", "type": "integer", "unit": "flag count 0-4" },
+        { "paramId": "M3.9", "key": "lifestyleBurden", "type": "integer", "unit": "flag count 0-3" }
+      ],
+      "alertLogic": {
+        "primary": [
+          "heavyMetalIndex >= 2",
+          "lifestyleBurden >= 2",
+          "tobaccoNicotine <= 4 always triggers an individual alert"
+        ]
+      },
+      "charts": ["flag_grid"],
+      "developerNotes": [
+        "Never render this as a toxicology report.",
+        "Each flagged exposure should carry its own confirmatory test mapping.",
+        "Use strongest caution language for heavy metals and tobacco."
+      ]
+    },
+    {
+      "id": "M4",
+      "slug": "metabolic-risk",
+      "name": "Metabolic Risk",
+      "uiLabel": "Metabolic Health Screening",
+      "category": "metabolic",
+      "evidenceStrength": "well_supported_core_plus_proxy_components",
+      "goal": "Identify metabolic syndrome patterns using QRMA proxies plus validated anthropometric inputs and prompt fasting lab confirmation.",
+      "inputMode": "mixed",
+      "inputs": [
+        { "paramId": "M4.1", "key": "triglycerideImbalance", "source": "moduleInputs.M4.triglycerideImbalance", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M4.2", "key": "urineGlucoseCoefficient", "source": "moduleInputs.M4.urineGlucoseCoefficient", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M4.3", "key": "insulinSecretionCoefficient", "source": "moduleInputs.M4.insulinSecretionCoefficient", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M4.4", "key": "fatMetabolismImbalance", "source": "moduleInputs.M4.fatMetabolismImbalance", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M4.5", "key": "bmi", "source": "shared.anthropometry.bmi", "type": "number", "unit": "kg/m2" },
+        { "paramId": "M4.6", "key": "waistCircumference", "source": "shared.anthropometry.waistCircumferenceCm", "type": "number", "unit": "cm" }
+      ],
+      "derivedOutputs": [
+        { "paramId": "M4.7", "key": "glycemicBurden", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M4.8", "key": "lipidBurden", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M4.X", "key": "metSynCriteriaCount", "type": "integer", "unit": "0-5" }
+      ],
+      "alertLogic": {
+        "primary": [
+          "glycemicBurden <= 4",
+          "lipidBurden <= 4",
+          "bmi >= 25",
+          "waistCircumferenceCm >= gender-specific Asian threshold",
+          "metSynCriteriaCount >= 3"
+        ],
+        "specialCases": [
+          "Use Asian-specific waist thresholds for Indonesian users: male 90 cm, female 80 cm"
+        ]
+      },
+      "charts": ["mini_radar", "bmi_gauge"],
+      "developerNotes": [
+        "This is the strongest-evidence module overall.",
+        "Prefer MetSyn criteria count as the headline interpretive output.",
+        "Do not use European waist cutoffs."
+      ]
+    },
+    {
+      "id": "M5",
+      "slug": "cardio-renal-strain",
+      "name": "Cardio-Renal Strain",
+      "uiLabel": "Cardio-Renal Screening Panel",
+      "category": "cardio-renal",
+      "evidenceStrength": "needs_lab_confirmation_all_well_supported_axis",
+      "goal": "Detect patterns suggesting cardiovascular and renal stress and bridge to eGFR, ACR, uric acid, and electrolyte testing.",
+      "inputMode": "direct_and_shared",
+      "inputs": [
+        { "paramId": "M5.1", "key": "cholesterolPlaqueSignal", "source": "moduleInputs.M5.cholesterolPlaqueSignal", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M5.2", "key": "vascularFlexibility", "source": "moduleInputs.M5.vascularFlexibility", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M5.3", "key": "leftVentricularEjectionResistance", "source": "moduleInputs.M5.leftVentricularEjectionResistance", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M5.4", "key": "uricAcid", "source": "moduleInputs.M5.uricAcid", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M5.5", "key": "proteinuriaIndex", "source": "moduleInputs.M5.proteinuriaIndex", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M5.6", "key": "potassium", "source": "shared.electrolytes.potassium", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M5.7", "key": "magnesium", "source": "shared.electrolytes.magnesium", "type": "number", "unit": "0-10 normalized proxy" }
+      ],
+      "derivedOutputs": [
+        { "paramId": "M5.8", "key": "cardiacIndex", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M5.9", "key": "cardiorenalIndex", "type": "number", "unit": "0-10 normalized proxy" }
+      ],
+      "alertLogic": {
+        "primary": [
+          "cardiacIndex <= 4",
+          "cardiorenalIndex <= 4",
+          "any single parameter <= 3"
+        ],
+        "specialCases": [
+          "When flagged, the confirmatory prompt for creatinine/eGFR and urine ACR should be highly visible.",
+          "Magnesium and potassium are shared inputs and must not be duplicated in forms."
+        ]
+      },
+      "charts": ["split_gauge"],
+      "developerNotes": [
+        "Make the confirm-with-labs pathway prominent and not easily missed.",
+        "This module has the clearest bridge to standard medical tests.",
+        "Do not imply CKD or CVD diagnosis from proxy data."
+      ]
+    },
+    {
+      "id": "M6",
+      "slug": "nutrient-sufficiency",
+      "name": "Nutrient Sufficiency",
+      "uiLabel": "Nutrient Sufficiency Snapshot",
+      "category": "nutrition",
+      "evidenceStrength": "exploratory_proxy_mix",
+      "goal": "Provide a broad nutritional adequacy signal across micronutrients and identify co-occurring deficiency patterns.",
+      "inputMode": "direct_and_shared",
+      "inputs": [
+        { "paramId": "M6.1", "key": "zinc", "source": "moduleInputs.M6.zinc", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M6.2", "key": "magnesium", "source": "shared.electrolytes.magnesium", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M6.3", "key": "potassium", "source": "shared.electrolytes.potassium", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M6.4", "key": "iodine", "source": "moduleInputs.M6.iodine", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M6.5", "key": "silicon", "source": "moduleInputs.M6.silicon", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M6.6", "key": "vitaminB6", "source": "moduleInputs.M6.vitaminB6", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M6.7", "key": "vitaminC", "source": "shared.antioxidants.vitaminC", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M6.8", "key": "vitaminD3", "source": "moduleInputs.M6.vitaminD3", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M6.9", "key": "vitaminE", "source": "shared.antioxidants.vitaminE", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M6.10", "key": "folate", "source": "moduleInputs.M6.folate", "type": "number", "unit": "0-10 normalized proxy" }
+      ],
+      "derivedOutputs": [
+        { "paramId": "M6.11", "key": "sufficiencyScore", "type": "number", "unit": "0-100" },
+        { "paramId": "M6.12", "key": "deficientCount", "type": "integer", "unit": "0-10" }
+      ],
+      "alertLogic": {
+        "primary": [
+          "sufficiencyScore < 60",
+          "deficientCount >= 4",
+          "vitaminD3 <= 4 should always map to serum 25-OH vitamin D in action plan"
+        ],
+        "specialCases": [
+          "Silicon requires a visible 'evidence limited' notice.",
+          "Magnesium and potassium are shared inputs from M5."
+        ]
+      },
+      "charts": ["donut_chart", "icon_grid"],
+      "developerNotes": [
+        "Keep the output focused on adequacy patterns, not diagnoses.",
+        "Vitamin D3 has the strongest confirmatory testing pathway in this module.",
+        "Expose weak evidence clearly for silicon."
+      ]
+    },
+    {
+      "id": "M7",
+      "slug": "skin-collagen-resilience",
+      "name": "Skin Collagen Resilience",
+      "uiLabel": "Skin Connective Tissue Signals",
+      "category": "skin-connective-tissue",
+      "evidenceStrength": "exploratory_all",
+      "goal": "Assess skin health signals relevant to barrier function, collagen ageing, and oxidative stress and generate lifestyle and nutritional actions.",
+      "inputMode": "direct",
+      "inputs": [
+        { "paramId": "M7.1", "key": "skinCollagen", "source": "moduleInputs.M7.skinCollagen", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M7.2", "key": "skinElasticity", "source": "moduleInputs.M7.skinElasticity", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M7.3", "key": "tewl", "source": "moduleInputs.M7.tewl", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M7.4", "key": "sebum", "source": "moduleInputs.M7.sebum", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M7.5", "key": "melanin", "source": "moduleInputs.M7.melanin", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M7.6", "key": "skinSensitivity", "source": "moduleInputs.M7.skinSensitivity", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M7.7", "key": "eyeCollagen", "source": "moduleInputs.M7.eyeCollagen", "type": "number", "unit": "0-10 normalized proxy" },
+        { "paramId": "M7.8", "key": "jointSystemicCollagen", "source": "moduleInputs.M7.jointSystemicCollagen", "type": "number", "unit": "0-10 normalized proxy" }
+      ],
+      "derivedOutputs": [
+        { "paramId": "M7.9", "key": "collagenIndex", "type": "number", "unit": "0-100" },
+        { "paramId": "M7.10", "key": "barrierFunction", "type": "number", "unit": "0-100" }
+      ],
+      "alertLogic": {
+        "primary": [
+          "collagenIndex < 50",
+          "barrierFunction < 50",
+          "any single low-concern parameter <= 3"
+        ],
+        "specialCases": [
+          "melanin is inverted within collagenIndex",
+          "TEWL is inverted within barrierFunction",
+          "sebum is bidirectional: very low <= 3 and very high >= 8 are distinct alert types",
+          "skinSensitivity is inverted within barrierFunction"
+        ]
+      },
+      "charts": ["progress_bars", "parameter_grid"],
+      "developerNotes": [
+        "This is the lowest-evidence module and should display an Exploratory badge prominently.",
+        "Use wording such as 'pattern suggests sub-optimal collagen signal'.",
+        "Do not say 'your collagen is low'."
+      ]
+    },
+    {
+      "id": "M8",
+      "slug": "action-plan",
+      "name": "Action Plan",
+      "uiLabel": "Your Priority Actions",
+      "category": "aggregator",
+      "evidenceStrength": "structural_logic",
+      "goal": "Aggregate all module alerts into a prioritized, deduplicated action plan with confirmatory tests and food-first suggestions.",
+      "inputMode": "derived_only",
+      "inputs": [
+        { "key": "alerts", "source": "results.*.alerts", "type": "array" }
+      ],
+      "derivedOutputs": [
+        { "key": "orderedAlerts", "type": "array" },
+        { "key": "confirmatoryTests", "type": "array" },
+        { "key": "foodActions", "type": "array" },
+        { "key": "scoreSummary", "type": "array" }
+      ],
+      "alertLogic": {
+        "primary": [
+          "sort by evidence priority: well_supported, needs_lab_confirmation, exploratory",
+          "deduplicate tests by canonical test ID",
+          "limit food actions to 7",
+          "always render disclaimer block before content"
+        ]
+      },
+      "charts": ["ordered_checklist", "summary_table"],
+      "developerNotes": [
+        "Module 8 is an aggregator, not a separate input module.",
+        "Store alerts as moduleId, paramId, alertType, evidenceLevel, labTestIds, foodActionIds.",
+        "The disclaimer cannot be hidden or dismissed."
+      ]
+    }
+  ]
+}

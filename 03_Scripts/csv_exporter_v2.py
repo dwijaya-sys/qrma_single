@@ -3,23 +3,25 @@
 # QRMA CSV Exporter — Version 2
 # =============================================================================
 #
+# Lives in: 03_Scripts/
+# Outputs to: 01_Data/csv/{patient}_{date}.csv
+#
 # Changelog from v1 (csv_exporter.py):
 #   UPD  Import source changed from parser_v2 to parser_v3.
 #   UPD  export_dashboard_csv() now returns 4 values:
 #            (mapped, zones, warnings, unmapped_params)
 #        v1 returned 3 — the new 'zones' dict is handled here.
 #   UPD  Summary block now reports zone coverage alongside field population.
-#   UPD  Step labels updated to reflect 3-step flow (parse / load / export).
+#   UPD  Output path now writes to 01_Data/csv/ (project folder structure v2).
 #   UNC  resolve_pdf()      — unchanged
-#   UNC  build_output_path() — unchanged
 #   UNC  build_parser()     — unchanged
 #   UNC  All argparse arguments (--pdf, --mappings, --out) — unchanged
 #
-# Usage (identical to v1):
-#   python csv_exporter_v2.py
-#   python csv_exporter_v2.py --pdf "QRMA_Ridwan_November_21.pdf"
-#   python csv_exporter_v2.py --pdf "QRMA_Ridwan.pdf" --mappings "mappings.json"
-#   python csv_exporter_v2.py --pdf "QRMA_Ahmad_Dec_2024.pdf" --out "data\Ahmad.csv"
+# Usage:
+#   python 03_Scripts/csv_exporter_v2.py
+#   python 03_Scripts/csv_exporter_v2.py --pdf "QRMA_Ridwan_November_21.pdf"
+#   python 03_Scripts/csv_exporter_v2.py --pdf "file.pdf" --mappings "03_Scripts/mappings.json"
+#   python 03_Scripts/csv_exporter_v2.py --pdf "file.pdf" --out "01_Data/csv/custom.csv"
 #
 # =============================================================================
 
@@ -40,7 +42,7 @@ try:
     from parser_v3 import parse_qrma_pdf, load_mappings, export_dashboard_csv
 except ModuleNotFoundError:
     print("[!] Error: parser_v3.py not found.")
-    print("    Place csv_exporter_v2.py in the same folder as parser_v3.py.")
+    print("    Both csv_exporter_v2.py and parser_v3.py must be in 03_Scripts/.")
     sys.exit(1)
 
 
@@ -48,7 +50,10 @@ except ModuleNotFoundError:
 # DEFAULTS
 # =============================================================================
 
-SCRIPT_DIR       = os.path.dirname(os.path.abspath(__file__))
+# Script lives in 03_Scripts/ — project root is one level up
+SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+
 DEFAULT_MAPPINGS = os.path.join(SCRIPT_DIR, "mappings.json")
 
 
@@ -60,8 +65,8 @@ def build_output_path(demo):
     """
     Builds the output CSV filename from patient demographics.
 
-    Format : data/{patient_name}_{YYYY-MM-DD}.csv
-    Example: data/kamiyanti_2025-05-29.csv
+    Format : 01_Data/csv/{patient_name}_{YYYY-MM-DD}.csv
+    Example: 01_Data/csv/kamiyanti_2025-05-29.csv
 
     Rules:
       - Name is lowercased; spaces and special chars become underscores.
@@ -80,7 +85,7 @@ def build_output_path(demo):
         date_str = datetime.now().strftime("%Y-%m-%d")
 
     filename = f"{safe_name}_{date_str}.csv"
-    return os.path.join(SCRIPT_DIR, "data", filename)
+    return os.path.join(PROJECT_ROOT, "01_Data", "csv", filename)
 
 
 # =============================================================================

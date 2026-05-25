@@ -1,0 +1,48 @@
+{
+  "_fixture_note": "SEED FIXTURE — generated from known values in session logs and mappings.json. Values marked 0.0 were not extractable from session context and must be updated by running: python json_exporter.py --csv data/ridwan_2025-11-10.csv",
+  "patient": {
+    "name": "ridwan",
+    "age": 40,
+    "gender": "male",
+    "testdate": "10/11/2025 17:01"
+  },
+  "values": {
+    "bv": 61.274,
+    "bv_zone": "normal",
+    "cp": 67.24,
+    "cp_zone": "normal",
+    "art": 0.96,
+    "art_zone": "ringan",
+    "cr-vf": 1.966,
+    "cr-vf_zone": "normal",
+    "cr-lv": 1.702,
+    "cr-lv_zone": "normal",
+    "sk-sc": 2.69,
+    "sk-sc_zone": "berat",
+    "sk-ec": 3.484,
+    "sk-ec_zone": "ringan",
+    "ce": 3.484,
+    "ce_zone": "ringan",
+    "sk-tw": 1.475,
+    "sk-tw_zone": "ringan"
+  },
+  "meta": {
+    "source": "qrma-parser-v3",
+    "version": "3.0",
+    "generated_at": "SEED — replace with actual timestamp after running json_exporter.py",
+    "csv_source": "ridwan_2025-11-10.csv",
+    "run_id": "seed_fixture_ridwan_v1",
+    "row_count": 1
+  },
+  "warnings": [
+    "PDF PARAMETERS WITH NO MAPPING (161): Koefisien Tekanan Intraluminal | Fungsi Detoksifikasi | ...",
+    "DASHBOARD FIELDS NOT POPULATED (4): cj | mt-bmi | mt-wc | sk-jc"
+  ],
+  "_known_session_stats": {
+    "parameters_extracted_from_pdf": 253,
+    "ref_standard_entries_found": 214,
+    "dashboard_fields_populated": 60,
+    "fields_with_zone_data": 60,
+    "pipeline_warnings": 2
+  }
+}
