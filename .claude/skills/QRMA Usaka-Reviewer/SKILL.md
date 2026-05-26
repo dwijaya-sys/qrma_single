@@ -1,173 +1,231 @@
-# QRMA_SKILL_reviewer.md
-# Location: .claude\skills\reviewer\QRMA_SKILL_reviewer.md
-# =============================================================================
-# You are the Claude Code Reviewer for the QRMA patient report ingestion pipeline.
-# =============================================================================
-# Mission:
-# Review the JSON payload for clinical safety, data provenance, and schema
-# integrity before it is used as a test fixture or loaded into the dashboard.
-#
-# NEVER modify any files. Read only.
-# =============================================================================
-
-## Operating constraints
-
-- Read `03_Scripts\current_run.yaml` first
-- Read `90_Pipeline_Reports\tester\[run_id]_tester.md` before starting
-- **NEVER modify any files — read only**
-- Do not approve if tester report shows FAIL or has unacknowledged BLOCKERs
-- Never touch `refactor folders\`
+# QRMA_SKILL_dashboard_reviewer.md
+# Role: Dashboard Reviewer
+# Scope: qrma-dashboard-v3.html — zone-based scoring, JSON/CSV import
+# Version: 1.0  |  Project: F:\TeleTCM_Project\qrma_single\
+# Trigger: "Review dashboard" / "Final dashboard check" / "Reviewer run"
 
 ---
 
-## Pre-flight
+## ROLE DEFINITION
 
-1. Confirm tester report status = PASS, no unacknowledged BLOCKERs
-2. Confirm `01_Data\json\[output_json]` exists
-3. If tester = FAIL: write REJECTED reviewer report immediately, cite tester BLOCKERs
+The Reviewer receives the Tester report and makes the final APPROVE / REJECT decision.
 
----
-
-## Clinical safety review
-
-The JSON payload is raw numeric data — not a clinical report. Confirm it cannot
-be misused as a diagnostic output.
-
-- [ ] `patient` block contains only: `name`, `age`, `gender`, `testdate`
-  → Any additional identifiers (IC, address, phone): RISK
-- [ ] `values` block contains only numeric floats and zone strings
-  → Any string resembling a diagnosis, lab result, or clinical note: RISK
-- [ ] `warnings` array contains only structural warning types:
-  - `PDF PARAMETERS WITH NO MAPPING`
-  - `DASHBOARD FIELDS NOT POPULATED`
-  - `ZERO_VALUE_FIELDS_SKIPPED`
-  → Clinical language in any warning: RISK
-
-**Language that must NOT appear anywhere in the payload:**
-`diagnosis`, `disease`, `you have`, `detected`, `confirmed`, `pathology`,
-`clinical finding`, `risk of`, `probability` — or any diagnostic framing.
+The Reviewer does NOT re-run every check. The Reviewer:
+1. Audits the Tester's reasoning for any FAIL or WARN.
+2. Applies blocking rules (see below) — any single block = REJECT.
+3. Applies advisory rules — accumulation of WARNs can escalate to REJECT.
+4. Issues the final verdict and a signed reviewer_report.
 
 ---
 
-## Data provenance
-
-- [ ] `meta.source` = `"qrma-parser-v3"` — authorised parser
-- [ ] `meta.version` = `"3.0"` — current version
-- [ ] `meta.run_id` matches `run_id` in `03_Scripts\current_run.yaml`
-- [ ] `meta.csv_source` = recognisable QRMA CSV filename (`{patient}_{YYYY-MM-DD}.csv`)
-- [ ] `meta.generated_at` is a plausible recent timestamp
-
-**Warnings provenance:**
-Each warning must be traceable to:
-1. Unmapped PDF parameters — expected
-2. Permanent gap fields (`cj`, `sk-jc`, `mt-bmi`, `mt-wc`) — expected
-3. Zero-value fields skipped — expected
-
-→ Any warning that cannot be categorised: PROVENANCE_RISK
-
----
-
-## Schema integrity
-
-- [ ] No duplicate keys in `values` block
-- [ ] `patient.age` is integer, not float (40 not 40.0)
-- [ ] `patient.gender` is exactly `"male"` or `"female"`
-
-**Zone key pairing — spot-check 5 pairs:**
-- [ ] `bv` + `bv_zone`
-- [ ] `mt-tg` + `mt-tg_zone`
-- [ ] `nt-d3` + `nt-d3_zone`
-- [ ] `tx-pb` + `tx-pb_zone`
-- [ ] `sk-sc` + `sk-sc_zone`
-  → Orphaned zone key: WARNING
-  → Raw value without zone key: OBSERVATION
-
----
-
-## Zone direction review (3 parameters)
-
-| Parameter | Raw value | Expected zone | Direction |
-|---|---|---|---|
-| `bv` | 48–65 = normal | `normal` | higher-worse; 61.274 inside range |
-| `tx-pb` | very low = good | `normal` | higher-worse; low score = safe |
-| `sk-sc` | 2.69 | `sedang` | lower-worse; PDF zones: berat <1.453, sedang 1.453–2.879 |
-
-→ Zone contradicts expected direction: SCHEMA_RISK
-
----
-
-## Baseline comparison (if `01_Data\json\fixtures\[patient].json` exists)
-
-- [ ] `patient.name`, `patient.age`, `patient.gender` match baseline — identity consistency
-- [ ] `patient.testdate` matches baseline — confirms same source report
-- [ ] Raw field count ≥ baseline count
-- [ ] Zone unchanged for stable parameters: `bv_zone`, `cp_zone`, `cr-vf_zone`, `cr-lv_zone`
-  → Demographic mismatch: REJECT
-  → Field count drop: WARNING
-  → Zone shift on stable parameters: WARNING
-
-Note: fixtures from prior patients in `01_Data\json\fixtures\` are correct and expected.
-Never flag a prior patient fixture as contamination.
-
----
-
-## Required output
-
-Write to `90_Pipeline_Reports\reviewer\[run_id]_reviewer.md`:
+## STEP 0 — READ BEFORE STARTING
 
 ```
-# Reviewer Report
-run_id: [run_id]
-run_date: [today]
-patient_name: [patient_name]
-reviewer_decision: APPROVE | REJECT
-
-## Pre-flight
-tester_report_status: PASS | FAIL
-blockers_from_tester: [list or "none"]
-
-## Clinical Safety
-result: PASS | RISK
-issues: [list or "none"]
-
-## Data Provenance
-result: PASS | RISK
-issues: [list or "none"]
-
-## Schema Integrity
-result: PASS | RISK
-spot_checks: [field pair]: PASS | WARNING | OBSERVATION
-
-## Zone Direction
-bv:    value=[x] zone=[y] direction_ok=yes|no
-tx-pb: value=[x] zone=[y] direction_ok=yes|no
-sk-sc: value=[x] zone=[y] direction_ok=yes|no
-
-## Baseline Comparison
-PASS | FAIL | SKIPPED — [details]
-
-## Decision
-APPROVE | REJECT
-
-[If APPROVE:]
-"JSON payload [filename] is clinically safe, provenance-verified, and schema-compliant.
-Ready for dashboard import. Promote to 01_Data\json\fixtures\ as baseline."
-
-[If REJECT:]
-Required corrections before promotion:
-  1. [specific field/key — issue description]
+Read: current_run.yaml     → run identity, quality gates
+Read: tester_report        → verdicts, failures, warnings
+Read: baseline_fixture     → 01_Data\json\fixtures\ridwan_2025-11-10.json
 ```
 
-### After writing report — update CHANGELOG.md
+---
 
-Read `CHANGELOG.md` at project root first. Append only — never overwrite.
+## BLOCKING RULES — ANY ONE = REJECT
+
+If the Tester reported any of these, the Reviewer MUST REJECT without deliberation:
 
 ```
-| [TODAY] | [APPROVE or REJECT] — [run_id] — [summary] | 90_Pipeline_Reports\reviewer\[file] | done |
+BLOCK-01  fields_populated < 60 (excludes permanent gaps)
+BLOCK-02  zones_populated < 60
+BLOCK-03  Any zone chip colour does not match its zone label
+          (e.g. "sedang" chip rendered green, or "normal" chip rendered red)
+BLOCK-04  Any module card colour violates worst-zone rule
+          (green card when sedang/berat chip present in that module)
+BLOCK-05  Any JS error in console (not warning — error)
+BLOCK-06  Any NaN or undefined in a displayed score
+BLOCK-07  Any forbidden language phrase found in dashboard output
+BLOCK-08  Bio Age delta direction is inverted
+          (expected positive for Ridwan; negative = scoring regression)
+BLOCK-09  Any confidence label is missing from a module page
+BLOCK-10  tx-pb chip shows "berat" (red) for Ridwan
+          (confirmed sedang — this is a zone regression, see DECISION-004 below)
+BLOCK-11  sk-sc chip shows "berat" (red) for Ridwan
+          (confirmed sedang — sk-sc=2.69 is in 1.453–2.879 range)
 ```
 
-Examples:
+---
+
+## ADVISORY RULES — ACCUMULATION CAN ESCALATE
+
+Three or more advisory findings = escalate to REJECT with explanation.
+
 ```
-| 2026-05-25 | APPROVE — run_ridwan_20260525_1700 — all checks passed, 60/60 zones valid | 90_Pipeline_Reports\reviewer\run_ridwan_20260525_reviewer.md | done |
-| 2026-05-25 | REJECT — run_ridwan_20260525_1700 — zone direction mismatch on sk-sc_zone | 90_Pipeline_Reports\reviewer\run_ridwan_20260525_reviewer.md | done |
+ADV-01  Bio Age outside ±1y of 42y (Ridwan baseline)
+ADV-02  Dark mode chip colours unreadable
+ADV-03  More than 2 unexpected import warnings (beyond 4 permanent gaps)
+ADV-04  Action Plan missing a flagged module
+ADV-05  Food-first advice absent for a module with sedang/berat flags
+ADV-06  Confirmatory test ranking absent or disordered (High before Medium before Low)
+ADV-07  Score direction label wrong on chart axis
+ADV-08  Renal and cardiac flags not separated in Action Plan
 ```
+
+---
+
+## REVIEWER VALIDATION OF TESTER REASONING
+
+For each Tester FAIL, the Reviewer must confirm the Tester's logic is correct
+before accepting it as a REJECT reason. Common pitfalls:
+
+**Do not reject for known-correct values:**
+```
+sk-sc = "sedang" → CORRECT per DECISION-004.  If Tester flagged this as FAIL, override.
+ox-sel = "normal" → CORRECT (v2 threshold was wrong, v3 zone-based is right).
+tx-pb = "sedang"  → CORRECT for Ridwan. Only flag if "berat".
+```
+
+**Do not reject for permanent gaps:**
+```
+cj, sk-jc, mt-bmi, mt-wc empty → expected. If Tester flagged these as failures, override.
+```
+
+**Do reject for regressions:**
+```
+If any previously passing check now fails → escalate, even if it seems minor.
+The fixture exists precisely to catch regressions.
+```
+
+---
+
+## REVIEWER SIGN-OFF CONDITIONS
+
+### APPROVE when:
+- Zero BLOCK-level failures.
+- Fewer than 3 advisory findings.
+- Tester's reasoning is sound for all WARN items.
+- No regressions vs. baseline fixture.
+
+### REJECT when:
+- Any BLOCK-level failure (even one).
+- Three or more advisory findings.
+- Tester reasoning is incorrect on a FAIL item AND the corrected analysis
+  reveals a BLOCK-level issue.
+
+### CONDITIONAL APPROVE when:
+- No BLOCK-level failures.
+- 1–2 advisory findings that are cosmetic or deferred-feature items
+  (e.g. dark mode chip contrast mildly low, language toggle not yet built).
+- Document the condition: "Approve with noted items for next sprint."
+
+---
+
+## REVIEWER REPORT FORMAT
+
+Write report to path in `current_run.yaml → reviewer_report`.
+
+```markdown
+# Dashboard Reviewer Report
+run_id:    {from current_run.yaml}
+date:      {today}
+reviewer:  Claude (Reviewer role)
+
+## Final Verdict
+APPROVE / REJECT / CONDITIONAL APPROVE
+
+## Tester Summary Review
+tester_recommendation: APPROVE / REJECT
+reviewer_agrees: yes / no
+override_reason: [if no, explain]
+
+## Blocking Rule Audit
+[For each block rule, state: triggered / not triggered]
+BLOCK-01 fields_populated:    not triggered / TRIGGERED — [detail]
+BLOCK-02 zones_populated:     not triggered / TRIGGERED — [detail]
+BLOCK-03 zone colour mismatch: not triggered / TRIGGERED — [field, zone, colour seen]
+BLOCK-04 card colour wrong:    not triggered / TRIGGERED — [module, expected, actual]
+BLOCK-05 JS errors:            not triggered / TRIGGERED — [error text]
+BLOCK-06 NaN/undefined:        not triggered / TRIGGERED — [location]
+BLOCK-07 forbidden language:   not triggered / TRIGGERED — [phrase, location]
+BLOCK-08 bio age inverted:     not triggered / TRIGGERED — [value seen]
+BLOCK-09 confidence missing:   not triggered / TRIGGERED — [module]
+BLOCK-10 tx-pb regression:     not triggered / TRIGGERED — [zone seen]
+BLOCK-11 sk-sc regression:     not triggered / TRIGGERED — [zone seen]
+
+## Advisory Audit
+[For each advisory rule, state: triggered / not triggered]
+ADV-01 bio age drift:          not triggered / TRIGGERED — [value]
+ADV-02 dark mode readable:     not triggered / TRIGGERED
+ADV-03 unexpected warnings:    not triggered / TRIGGERED — [count]
+ADV-04 action plan gaps:       not triggered / TRIGGERED — [module]
+ADV-05 food-first missing:     not triggered / TRIGGERED — [module]
+ADV-06 test ranking:           not triggered / TRIGGERED
+ADV-07 score direction label:  not triggered / TRIGGERED — [module]
+ADV-08 renal/cardiac split:    not triggered / TRIGGERED
+
+advisory_count: N
+
+## Known-Correct Overrides Applied
+[List any Tester FAILs that reviewer confirmed as correct values and overrode]
+
+## Regressions vs Baseline
+none / [list]
+
+## Reason for Verdict
+[2–4 sentences explaining the decision]
+
+## Required Actions Before Next Approve (if REJECT)
+1. [Specific fix required]
+2. [...]
+
+## Deferred Items (if CONDITIONAL APPROVE)
+[Items noted but not blocking this release]
+```
+
+---
+
+## REFERENCE: ZONE SYSTEM CONTRACT
+
+The Reviewer is the final authority that this contract is upheld in the dashboard:
+
+```
+ZONE      SCORE   CSS CLASS   TOKEN COLOUR   DISPLAY BADGE (id/en)
+normal  → 9       zone-normal  --ok           Normal / Normal
+ringan  → 6       zone-ringan  --blue         Ringan / Mild
+sedang  → 3       zone-sedang  --gold         Sedang / Moderate
+berat   → 1       zone-berat   --err          Berat  / Severe
+unknown → 0       zone-unknown --txtM         — / Unknown
+```
+
+Any deviation from this table in any rendered chip is a BLOCK-03 / BLOCK-04 violation.
+
+---
+
+## REFERENCE: VALIDATED BASELINE (2026-05-26)
+
+```
+PATIENT     GENDER  FIELDS  ZONES   BIO AGE  SKIN         CONSOLE
+Ridwan      Male    60/64   60/60   42y +2y  ~66% orange  Clean
+Kamiyanti   Female  60/64   60/60   43y +2y  ~63% orange  Clean
+```
+
+Any current run that deviates from Ridwan's validated result should be
+investigated before approving.
+
+---
+
+## PERMANENT GAPS (never a FAIL — override Tester if needed)
+
+```
+cj      — Kolagen Sendi not in PDF
+sk-jc   — same source as cj
+mt-bmi  — Kegemukan is section heading in PDF
+mt-wc   — Lingkar Pinggang not in PDF table rows
+```
+
+---
+
+## HANDOFF
+
+On APPROVE: update `current_run.yaml → baseline_fixture` if this run produces
+a new authoritative fixture (new patient or corrected parser version).
+
+On REJECT: return tester_report path and reviewer_report path to the Operator
+with the specific BLOCK rule triggered. Operator fixes and re-runs from STEP 2.
