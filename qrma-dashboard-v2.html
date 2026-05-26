@@ -599,10 +599,11 @@ function cBioAge(){
   const offset = (p1*0.35 + p2*0.35 + p3*0.30) * 1.2;
 
   return {
-    ba: Math.round(age + offset),
-    p1: +p1.toFixed(1),
-    p2: +p2.toFixed(1),
-    p3: +p3.toFixed(1)
+    ba:  Math.round(age + offset),
+    age: age,
+    p1:  +p1.toFixed(1),
+    p2:  +p2.toFixed(1),
+    p3:  +p3.toFixed(1)
   };
 }
 function cOx(){
@@ -706,8 +707,64 @@ function cCr(){
     ua:g('cr-ua'), pt:g('cr-pt'), k:g('cr-k'), mg:g('cr-mg')
   };
 }
-function cNt(){const items=[{n:'Zinc',v:g('nt-zn'),min:5},{n:'Magnesium',v:g('nt-mg'),min:5},{n:'Potassium',v:g('nt-k'),min:4.5},{n:'Iodine',v:g('nt-io'),min:5},{n:'Silicon',v:g('nt-si'),min:5},{n:'Vitamin B6',v:g('nt-b6'),min:5},{n:'Vitamin C',v:g('nt-vc'),min:4.5},{n:'Vitamin D3',v:g('nt-d3'),min:5},{n:'Vitamin E',v:g('nt-ve'),min:5},{n:'Folate',v:g('nt-fo'),min:5}];let def=0,opt=0,tot=0;items.forEach(i=>{const p=i.v/i.min*100;tot+=Math.min(p,100);if(p>=100)opt++;else if(p<75)def++;});return{s:Math.round(tot/items.length),def,opt,items};}
-function cSk(){const sc=g('sk-sc'),el=g('sk-el'),tw=g('sk-tw'),sb=g('sk-sb'),ml=g('sk-ml'),sn=g('sk-sn'),ec=g('sk-ec'),jc=g('sk-jc');const cl=Math.round(((sc/6)+(Math.min(ec/1,1))+(jc/7))/3*100);const bf=Math.round(((el/8)+(1-Math.min(tw/8,1)))/2*100);return{s:Math.min(100,Math.round(cl*.5+bf*.3+(1-Math.min(sn/10,1))*100*.2)),cl:Math.min(100,cl),bf:Math.min(100,bf),sc,el,tw,sb,ml,sn,ec,jc};}
+function cNt(){
+  const zd = window.zoneData || {};
+
+  const fields=[
+    {n:'Zinc',      id:'nt-zn'}, {n:'Magnesium', id:'nt-mg'},
+    {n:'Potassium', id:'nt-k'},  {n:'Iodine',    id:'nt-io'},
+    {n:'Silicon',   id:'nt-si'}, {n:'Vitamin B6',id:'nt-b6'},
+    {n:'Vitamin C', id:'nt-vc'}, {n:'Vitamin D3',id:'nt-d3'},
+    {n:'Vitamin E', id:'nt-ve'}, {n:'Folate',    id:'nt-fo'}
+  ];
+
+  // Resilience module — zone score used directly (higher = better reserve)
+  // unknown zone → neutral score 5 (mid-range, neither good nor bad)
+  let def=0, opt=0, total=0;
+
+  const items=fields.map(f=>{
+    const zone  = zd[f.id+'_zone']||'unknown';
+    const score = scoreFromZone(zone)===0 ? 5 : scoreFromZone(zone);
+    total += score;
+    if(zone==='normal')               opt++;
+    else if(zone==='sedang'||zone==='berat') def++;
+    return{n:f.n, v:g(f.id), zone, score};
+  });
+
+  // s: avg zone score normalised to 0–100 (higher = better sufficiency)
+  const s = Math.round((total/fields.length)*(100/9));
+
+  return{s, def, opt, items};
+}
+function cSk(){
+  const zd = window.zoneData || {};
+
+  // Resilience module — zone score used directly (higher = better)
+  // sk-jc is a permanent gap → zone unknown → neutral 5
+  // unknown zone → neutral score 5
+  function zs(id){ const s=scoreFromZone(zd[id+'_zone']||'unknown'); return s===0?5:s; }
+
+  // Collagen index: skin collagen + eye collagen + joint collagen
+  const cl = Math.round(((zs('sk-sc')+zs('sk-ec')+zs('sk-jc'))/3)*(100/9));
+
+  // Barrier function: elasticity + TEWL (zone direction handled by PDF ref)
+  const bf = Math.round(((zs('sk-el')+zs('sk-tw'))/2)*(100/9));
+
+  // Sensitivity: normal zone (low sensitivity) = good resilience score
+  // No manual inversion needed — zone system encodes direction correctly
+  const sn = Math.round(zs('sk-sn')*(100/9));
+
+  // Combined resilience score — weights match v2 spec (cl.5 + bf.3 + sn.2)
+  // Note: sk-sb bidirectional alert (≤3=dry, ≥8=oily) handled in buildAction()
+  const s = Math.min(100,Math.round(cl*.5+bf*.3+sn*.2));
+
+  return{
+    s,
+    cl:Math.min(100,cl), bf:Math.min(100,bf),
+    sc:g('sk-sc'), el:g('sk-el'), tw:g('sk-tw'), sb:g('sk-sb'),
+    ml:g('sk-ml'), sn:g('sk-sn'), ec:g('sk-ec'), jc:g('sk-jc')
+  };
+}
 let RC=null,BC=null;
 function drawCharts(sc){const dk=document.documentElement.getAttribute('data-theme')==='dark';const tc=dk?'#cdccca':'#28251d',gc=dk?'#393836':'#dcd9d5';const lb=['Oxidative','Toxic','Metabolic','Cardio-Renal','Nutrients','Skin'];const rd=[100-Math.min(sc.ox,100),100-Math.min(sc.tx,100),100-Math.min(sc.mt,100),100-Math.min(sc.cr,100),Math.min(sc.nt,100),Math.min(sc.sk,100)];const cc=v=>v<=30?'#437a22':v<=60?'#d19900':'#a13544';const bc=[cc(sc.ox),cc(sc.tx),cc(sc.mt),cc(sc.cr),cc(100-sc.nt),cc(100-sc.sk)];if(RC)RC.destroy();if(BC)BC.destroy();RC=new Chart(document.getElementById('radarChart'),{type:'radar',data:{labels:lb,datasets:[{data:rd,backgroundColor:'rgba(1,105,111,.15)',borderColor:'#01696f',pointBackgroundColor:'#01696f',pointRadius:4,borderWidth:2}]},options:{responsive:true,scales:{r:{min:0,max:100,ticks:{display:false},grid:{color:gc},angleLines:{color:gc},pointLabels:{color:tc,font:{family:'Satoshi',size:11}}}},plugins:{legend:{display:false}}}});BC=new Chart(document.getElementById('barChart'),{type:'bar',data:{labels:lb,datasets:[{data:[sc.ox,sc.tx,sc.mt,sc.cr,100-sc.nt,100-sc.sk],backgroundColor:bc,borderRadius:6,borderSkipped:false}]},options:{responsive:true,indexAxis:'y',scales:{x:{min:0,max:100,grid:{color:gc},ticks:{color:tc,font:{size:11}},border:{color:gc}},y:{grid:{display:false},ticks:{color:tc,font:{size:11}},border:{color:gc}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' Risk: '+ctx.raw+'%'}}}}}); }
 function buildAction(d){const rows=[];if(d.ba.ba>d.ba.age+5)rows.push({p:'High',dom:'Biological Age',f:'Bio age '+d.ba.ba+'y vs chrono '+d.ba.age+'y (+'+( d.ba.ba-d.ba.age)+'y)',t:'hsCRP, CBC, Fasting Lipids, HbA1c, TSH/FT4'});if(d.ox.gsh<.9||d.ox.coq<.9)rows.push({p:'Medium',dom:'Oxidative Stress',f:'Deficient glutathione and/or CoQ10 signal',t:'Plasma glutathione (ELISA), CoQ10 (HPLC), 8-OHdG urine'});if(d.tx.pb>1.2)rows.push({p:'High',dom:'Lead Exposure',f:'Lead signal elevated ('+d.tx.pb.toFixed(3)+')',t:'Whole blood lead level (BLL) - gold standard'});if(d.tx.hg>.5)rows.push({p:'High',dom:'Mercury Exposure',f:'Mercury signal elevated ('+d.tx.hg.toFixed(3)+')',t:'Blood total mercury; urine mercury speciation'});if(d.tx.cd>.5)rows.push({p:'Medium',dom:'Cadmium Exposure',f:'Cadmium signal borderline',t:'Urine cadmium (first-morning void)'});if(d.mt.ug>6.1||d.mt.ins<3)rows.push({p:'High',dom:'Glycemic Pattern',f:'Elevated glucose / low insulin signal',t:'FPG, HbA1c, Fasting Insulin, HOMA-IR'});if(d.mt.tg>5)rows.push({p:'Medium',dom:'Lipid Pattern',f:'Elevated triglyceride pattern',t:'Full fasting lipid panel: TG, LDL, HDL, Total Cholesterol'});if(d.cr.ch>50)rows.push({p:'High',dom:'Cholesterol Signal',f:'Plaque signal '+d.cr.ch.toFixed(1),t:'Fasting lipid panel, ApoB, Lp(a), hsCRP'});if(d.cr.pt>3)rows.push({p:'High',dom:'Renal: Proteinuria',f:'Proteinuria index elevated',t:'Urinalysis, uACR, serum creatinine, eGFR'});if(d.cr.vf<6)rows.push({p:'Medium',dom:'Vascular Flexibility',f:'Low vascular signal ('+d.cr.vf.toFixed(1)+')',t:'BP monitoring (ABPM), ankle-brachial index'});if(d.nt.def>4)rows.push({p:'Medium',dom:'Nutrient Deficiency',f:d.nt.def+' nutrients below range',t:'Serum zinc, RBC magnesium, 25(OH)D, serum folate, plasma B6'});if(d.sk.cl<50)rows.push({p:'Low',dom:'Collagen',f:'Low collagen signal across multiple sites',t:'Clinical skin assessment; consider P1NP (procollagen marker)'});rows.sort((a,b)=>({High:0,Medium:1,Low:2}[a.p]-{High:0,Medium:1,Low:2}[b.p]));if(!rows.length){document.getElementById('r-acttbl').innerHTML=aal('ok','No Critical Flags','All screening signals within normal reference ranges. Routine monitoring recommended.');}else{let h='<table class="atbl"><thead><tr><th>Priority</th><th>Domain</th><th>Screening Finding</th><th>Suggested Confirmatory Tests</th></tr></thead><tbody>';rows.forEach(r=>{const pc=r.p==='High'?'phi':r.p==='Medium'?'pmd':'plo';h+='<tr><td class="'+pc+'">'+r.p+'</td><td>'+r.dom+'</td><td>'+r.f+'</td><td style="font-size:var(--text-xs);color:var(--txtM)">'+r.t+'</td></tr>';});h+='</tbody></table>';document.getElementById('r-acttbl').innerHTML=h;}const fp=[];if(d.ox.s>40)fp.push(ftrow('Antioxidant Priority',['Berries','Spinach','Green Tea','Brazil Nuts (Se)','Citrus (Vit C)','Sunflower Seeds (Vit E)','Dark Chocolate']));if(d.mt.s>30)fp.push(ftrow('Metabolic Support',['Oats + Legumes (Fiber)','Fatty Fish (Omega-3)','Bitter Melon','Cinnamon','Reduce Refined Carbs']));if(d.cr.s>30)fp.push(ftrow('Cardio-Renal',['Bananas + Avocado (K)','Pumpkin Seeds (Mg)','Quercetin Foods (Onion)','Reduce Sodium']));if(d.nt.def>3)fp.push(ftrow('Micronutrient Diversity',['Dark Leafy Greens (Mg, Folate)','Pumpkin Seeds (Zinc)','Seaweed (Iodine)','Fatty Fish (D3, B6)','Chickpeas (Folate)']));if(d.sk.s<60)fp.push(ftrow('Skin + Collagen',['Bone Broth','Fish / Chicken Skin','Egg Whites','Vitamin C Cofactors','Garlic (Sulfur)','Berries (Resveratrol)']));document.getElementById('r-actfood').innerHTML=fp.length?fp.join(''):'<p style="color:var(--txtM);font-size:var(--text-sm)">Continue balanced whole-foods diet. No critical nutritional gaps identified.</p>';const hi=rows.filter(r=>r.p==='High');document.getElementById('r-actal').innerHTML=hi.length?hi.map(r=>aal('err',r.dom+' - High Priority',r.f+'. Confirm: '+r.t)).join(''):aal('ok','No High-Priority Alerts','All flags at medium or low priority. See confirmatory tests table.');}
@@ -717,7 +774,7 @@ const oxC=clrc(ox.s,30,60);document.getElementById('r-ox').style.display='block'
 const txC=clrc(tx.s,25,50);document.getElementById('r-tx').style.display='block';se('r-txs',tx.s+'%',txC);se('r-txl',lbl(tx.s,25,50),'');se('r-hm',tx.hm+'',tx.hm<=10?'cok':tx.hm<=30?'cwarn':'cbad');se('r-lbi',tx.lb+'',tx.lb<=15?'cok':tx.lb<=30?'cwarn':'cbad');const txA=[];if(tx.pb>1.2)txA.push(aal('err','Elevated Lead Signal','Confirm: Whole blood lead level (BLL). Do not conclude without lab.'));if(tx.hg>.5)txA.push(aal('err','Elevated Mercury Signal','Confirm: Blood mercury, urine mercury speciation.'));if(tx.cd>.5)txA.push(aal('warn','Cadmium Borderline','Confirm: Urine cadmium (first-morning void).'));if(tx.as_>.4)txA.push(aal('warn','Arsenic Borderline','Confirm: Urine arsenic, speciated inorganic.'));if(!txA.length)txA.push(aal('ok','No Critical Heavy Metal Flags','Signals within normal reference ranges.'));document.getElementById('r-txal').innerHTML=txA.join('');se('k-tx',tx.s+'%',txC);document.getElementById('k-txl').textContent=lbl(tx.s,25,50);
 const mtC=clrc(mt.s,30,60);document.getElementById('r-mt').style.display='block';se('r-mts',mt.s+'%',mtC);se('r-mtl',lbl(mt.s,30,60),'');se('r-gc',mt.gc+'%',mt.gc<=20?'cok':mt.gc<=40?'cwarn':'cbad');se('r-lp',mt.lp+'%',mt.lp<=20?'cok':mt.lp<=40?'cwarn':'cbad');const mtA=[];if(mt.ug>6.1)mtA.push(aal('warn','Elevated Glucose Signal','Confirm: FPG, HbA1c.'));if(mt.ins<3)mtA.push(aal('warn','Low Insulin Secretion Signal','Confirm: Fasting insulin, C-peptide, HOMA-IR.'));if(mt.tg>5)mtA.push(aal('warn','Elevated Triglyceride Pattern','Confirm: Full fasting lipid panel.'));if(mt.bmi>25)mtA.push(aal('info','Elevated BMI','Consider waist-to-height ratio and body composition.'));if(!mtA.length)mtA.push(aal('ok','Metabolic Profile Within Range','No significant flags at this time.'));document.getElementById('r-mtal').innerHTML=mtA.join('');se('k-mt',mt.s+'%',mtC);document.getElementById('k-mtl').textContent=lbl(mt.s,30,60);
 const crC=clrc(cr.s,30,60);document.getElementById('r-cr').style.display='block';se('r-crs',cr.s+'%',crC);se('r-crl',lbl(cr.s,30,60),'');se('r-cai',cr.cai+'%',cr.cai<=20?'cok':cr.cai<=40?'cwarn':'cbad');se('r-ri',cr.ri+'%',cr.ri<=20?'cok':cr.ri<=40?'cwarn':'cbad');const crA=[];if(cr.ch>50)crA.push(aal('warn','Elevated Cholesterol Signal','Confirm: Fasting lipid panel, ApoB.'));if(cr.vf<6)crA.push(aal('warn','Reduced Vascular Flexibility','Confirm: BP monitoring (ABPM), ABI.'));if(cr.pt>3)crA.push(aal('err','Proteinuria Signal Elevated','Confirm: Urinalysis, uACR, serum creatinine, eGFR.'));if(cr.ua>7.2)crA.push(aal('warn','Elevated Uric Acid Pattern','Confirm: Serum uric acid.'));if(!crA.length)crA.push(aal('ok','Cardio-Renal Signals Within Range','No critical strain flags detected.'));document.getElementById('r-cral').innerHTML=crA.join('');se('k-cr',cr.s+'%',crC);document.getElementById('k-crl').textContent=lbl(cr.s,30,60);
-const ntC=nt.s>=70?'cok':nt.s>=50?'cwarn':'cbad';const ntL=nt.s>=70?'Sufficient':nt.s>=50?'Borderline':'Deficient';document.getElementById('r-nt').style.display='block';se('r-nts',nt.s+'%',ntC);se('r-ntl',ntL,'');se('r-ntdef',nt.def+'','cbad');se('r-ntopt',nt.opt+'','cok');document.getElementById('r-ntbm').innerHTML='<div class="bml">'+nt.items.map(i=>{const p=i.v/i.min*100;return bmr(i.n,i.v,p>=100?'normal':p>=75?'borderline':'deficient');}).join('')+'</div>';document.getElementById('r-ntf').innerHTML=ftrow('Nutrient-Rich Foods',['Pumpkin Seeds (Zinc)','Dark Greens (Mg, Folate)','Bananas (K)','Seaweed (Iodine)','Salmon (D3, B6)','Chickpeas (Folate)','Sunflower Seeds (E)','Citrus (C)']);se('k-nt',nt.s+'%',ntC);document.getElementById('k-ntl').textContent=ntL;
+const ntC=nt.s>=70?'cok':nt.s>=50?'cwarn':'cbad';const ntL=nt.s>=70?'Sufficient':nt.s>=50?'Borderline':'Deficient';document.getElementById('r-nt').style.display='block';se('r-nts',nt.s+'%',ntC);se('r-ntl',ntL,'');se('r-ntdef',nt.def+'','cbad');se('r-ntopt',nt.opt+'','cok');document.getElementById('r-ntbm').innerHTML='<div class="bml">'+nt.items.map(i=>bmr(i.n,i.v,i.zone==='normal'?'normal':i.zone==='ringan'?'borderline':'deficient')).join('')+'</div>';document.getElementById('r-ntf').innerHTML=ftrow('Nutrient-Rich Foods',['Pumpkin Seeds (Zinc)','Dark Greens (Mg, Folate)','Bananas (K)','Seaweed (Iodine)','Salmon (D3, B6)','Chickpeas (Folate)','Sunflower Seeds (E)','Citrus (C)']);se('k-nt',nt.s+'%',ntC);document.getElementById('k-ntl').textContent=ntL;
 const skC=sk.s>=70?'cok':sk.s>=50?'cwarn':'cbad';const skL=sk.s>=70?'Resilient':sk.s>=50?'Moderate Concern':'Low Resilience';document.getElementById('r-sk').style.display='block';se('r-sks',sk.s+'%',skC);se('r-skl',skL,'');se('r-cli',sk.cl+'%',sk.cl>=70?'cok':sk.cl>=50?'cwarn':'cbad');se('r-bfi',sk.bf+'%',sk.bf>=70?'cok':sk.bf>=50?'cwarn':'cbad');document.getElementById('r-skbm').innerHTML='<div class="bml">'+bmr('Skin Collagen',sk.sc,sk.sc>=4?'normal':sk.sc>=3?'borderline':'deficient')+bmr('Skin Elasticity',sk.el,sk.el>=5.5?'normal':sk.el>=4?'borderline':'abnormal')+bmr('TEWL (Water Loss)',sk.tw,sk.tw<5?'normal':sk.tw<6.5?'borderline':'abnormal')+bmr('Eye Collagen',sk.ec,sk.ec>=.7?'normal':sk.ec>=.5?'borderline':'deficient')+bmr('Joint Collagen',sk.jc,sk.jc>=5?'normal':sk.jc>=4?'borderline':'deficient')+'</div>';document.getElementById('r-skf').innerHTML=ftrow('Skin-Supporting Foods',['Bone Broth (Collagen)','Fish + Chicken Skin','Egg Whites','Vitamin C Cofactors','Berries (Resveratrol)','Garlic (Sulfur)']);se('k-sk',sk.s+'%',skC);document.getElementById('k-skl').textContent=skL;
 const alv=Math.round([ox.s,tx.s,mt.s,cr.s,100-nt.s,100-sk.s].reduce((a,b)=>a+b,0)/6);const alC=alv<=30?'cok':alv<=60?'cwarn':'cbad';se('k-al',alv+'%',alC);document.getElementById('k-all').textContent=alv<=30?'Low Stress':alv<=60?'Moderate Burden':'High Multisystem Stress';
 drawCharts(GS);buildAction({ba,ox,tx,mt,cr,nt,sk,al:alv});lucide.createIcons();nav('dashboard');}
