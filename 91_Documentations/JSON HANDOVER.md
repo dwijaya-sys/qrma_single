@@ -301,57 +301,122 @@ The zone columns in the CSV are already populated and ready. The dashboard just 
 
 ## 6. DASHBOARD STATE
 
-### 6.1 Current HTML (qrma-dashboard-v2.html)
-- 8 modules with manual input forms
-- CSV import modal — reads raw value columns, populates inputs, calls calcAll()
-- Reads zone columns: NOT YET — zone columns in CSV are ignored by current HTML
-- Scoring: still uses old 0–100 minified JS functions
-- Gender normalisation fixed (Pria→male, Wanita→female)
-- Script tag restored (was accidentally removed — now confirmed present)
-
-### 6.2 CSV Import Flow (implemented)
+### 6.1 Active HTML Files
 
 ```
-User clicks "Import CSV"
-  → File picker opens
-  → _parseCSV() reads first data row
-  → _showImportModal() displays:
-      Patient name, age, gender, test_date
-      Progress bar: X / 64 fields ready
-      Warning block: lists unpopulated fields
-  → User clicks "Load Report"
-  → confirmImport() writes values to all input fields
-  → calcAll() triggered
-  → nav('dashboard') — shows results
+qrma-dashboard-v2.html   — previous version (pre-refactor, 0–100 scoring)
+qrma-dashboard-v3.html   — ACTIVE version (zone-based scoring, JSON import)
 ```
 
-### 6.3 What Needs to Be Built Next (dashboard v3)
+### 6.2 What Was Built in Dashboard v3 (2026-05-26)
 
-**Priority order:**
+**New files added:**
+```
+03_Scripts\zone-scoring.js    — standalone zone-to-score module (v1.0)
+03_Scripts\importer.js        — JSON importer adapter (v1.5.1, pre-existing)
+```
+
+**Zone scoring module (zone-scoring.js):**
+```javascript
+currentLang = 'id'                  // default Indonesian, toggle-ready
+ZONE_SCORES  = {normal:9, ringan:6, sedang:3, berat:1, unknown:0}
+ZONE_BADGES  = bilingual per zone (Option B — both langs per key)
+ZONE_COLORS  = CSS class names per zone
+scoreFromZone(zone)   → numeric score
+getBadge(zone)        → display text in currentLang
+getColor(zone)        → CSS class string
+setLang(lang)         → 'en' | 'id' only
+```
+
+**HTML changes (all via str_replace — no full rewrites):**
+```
+<head>          zone-scoring.js + importer.js script tags added
+confirmImport() JSON path added — detects .json vs .csv file
+                window.zoneData populated before importFromPayload()
+                CSV path unchanged
+cBioAge()       REPLACED — zone burden → weighted 3-pillar bio age offset
+cOx()           REPLACED — ax (antioxidant reserve) + px (pro-oxidant load)
+cTx()           REPLACED — hm (heavy metals) + lb (lifestyle burden)
+cMt()           REPLACED — gc (glycemic) + lp (lipid) + bmi/wc preserved
+cCr()           REPLACED — cai (cardiac) + ri (renal)
+cNt()           REPLACED — resilience — avg zone score × 10 nutrients
+cSk()           REPLACED — resilience — cl (collagen) + bf (barrier) + sn
+calcAll()       PATCHED  — nutrient bmr chips use i.zone (not i.min)
+                PATCHED  — oxC/txC/mtC/crC use moduleZoneColor() not clrc()
+buildAction()   UNCHANGED — raw field values still in all return objects
+```
+
+**New CSS classes (15 total):**
+```css
+.zone-badge                    — pill shape (shared)
+.zone-normal/ringan/sedang/berat/unknown  — chip: background + text
+.zt-normal/ringan/sedang/berat/unknown   — text-only variants
+```
+
+**Colour mapping (uses existing design tokens):**
+```
+normal  → --ok   + --okHi    (green)
+ringan  → --blue + --blueHi  (blue)
+sedang  → --gold + --goldHi  (amber)
+berat   → --err  + --errHi   (red)
+unknown → --txtM + --surf2   (muted)
+```
+
+**moduleZoneColor() logic:**
+```
+worst-zone drives module colour card:
+  any berat  → cbad (red)
+  any sedang → cwarn (orange)
+  else       → cok (green)
+```
+
+### 6.3 Import Flow (v3)
 
 ```
-1. Zone-to-score normalization layer
-   - Read {field_id}_zone columns from imported CSV
-   - Map zone labels to 1-10 scores using ZONE_SCORES
-   - Replace module scoring functions with zone-driven logic
+User clicks Import
+  → File picker opens (accepts .json and .csv)
+  → FileReader reads file
+  → If .json:
+      JSON.parse → _jsonToRow() flattens for modal preview
+      _showImportModal() shows patient + field count
+      User confirms → window.zoneData populated from payload values
+      QRMAImporter.importFromPayload() writes DOM fields + calls calcAll()
+      closeImportModal()
+  → If .csv:
+      _parseCSV() reads first row (unchanged)
+      _showImportModal() shows patient + field count
+      User confirms → existing confirmImport() CSV path
+      calcAll()
+```
 
-2. 4-colour zone display
-   - Green / Blue / Yellow / Red per parameter chip
-   - Match QRMA report colour palette exactly
-   - Show zone label alongside raw value on each input field
+### 6.4 Validated Results (2026-05-26)
 
-3. Module score recalculation
-   - Bio Age: use zone-weighted 3-pillar model
-   - Modules 2–7: aggregate zone scores per module
-   - Action Plan: gate on zone severity (berat > sedang > ringan > normal)
+```
+PATIENT     GENDER  FIELDS  ZONES   BIO AGE  SKIN        CONSOLE
+Ridwan      Male    60/64   60/60   42y +2y  66% orange  Clean
+Kamiyanti   Female  60/64   60/60   43y +2y  63% orange  Clean
+```
 
-4. Asian-specific waist thresholds (from module-spec doc)
-   - Men: ≥90cm = abnormal (not European IDF ≥102cm)
-   - Women: ≥80cm = abnormal (not European IDF ≥88cm)
+**Module chip validation (Kamiyanti):**
+```
+Oxidative chips  — Selenium: Deficient→Normal (v2 threshold was wrong)
+                   Vitamin E: Deficient confirmed by zone
+                   All others consistent with zone data ✓
+Skin chips       — 4 Borderline collagen, TEWL Normal (barrier healthy)
+                   Joint Collagen: Deficient (sedang/berat zone confirmed)
+Nutrient chips   — 5 Normal, 4 Borderline, 1 Deficient (Vit E)
+                   Consistent with 80% module score ✓
+```
 
-5. Sebum bidirectional alert
-   - sk-sb: ≤3 = dry/low (flagged), ≥8 = oily/high (flagged)
-   - Neutral zone: 3–8
+**Zone display is now fully honest — every chip label traces to PDF Referensi Standar.**
+
+### 6.5 Pending — Dashboard
+
+```
+1. Language toggle UI button (setLang() built, no UI trigger yet)
+2. buildAction() zone-based gates (currently uses raw numeric values)
+3. Sebum bidirectional alert in buildAction() (sk-sb ≤3=dry, ≥8=oily)
+4. Dashboard QA skill files (Operator/Tester/Reviewer for HTML)
 ```
 
 ---
@@ -551,23 +616,86 @@ DECISION-006: Zone spot-check reference values (confirmed from approved fixture)
 
 ---
 
+## 12b. DASHBOARD DECISIONS — 2026-05-26
+
+```
+DECISION-007: Token limit strategy for large HTML files
+  Never rewrite entire HTML. Always use str_replace on one function at a time.
+  Extract reference JS to 91_Documentations\ before modifying.
+  If task will exceed 200 lines output, split and continue.
+
+DECISION-008: Module calculator approach = zone burden (not raw thresholds)
+  All 7 calculators replaced with zone-based versions.
+  Risk modules (cOx, cTx, cMt, cCr, cBioAge): use burden score (10 - zone_score)
+    normal(9)→1  ringan(6)→4  sedang(3)→7  berat(1)→9  unknown→5
+  Resilience modules (cNt, cSk): use zone score directly
+    normal=9 (best)  berat=1 (worst)  unknown=5 (neutral)
+  Return shapes preserved exactly — calcAll() and buildAction() unchanged.
+
+DECISION-009: moduleZoneColor() = worst-zone-drives-module-colour
+  One berat field in a module → module card turns red (cbad)
+  One sedang field → orange (cwarn)
+  All ringan/normal/unknown → green (cok)
+  Replaces clrc() for the 4 risk module score cards.
+  clrc() retained for backward compatibility.
+
+DECISION-010: zbs() for parameter chips = zone-to-bmr-status
+  Replaces hardcoded numeric thresholds in 11 bmr() calls.
+  type 'res' (resilience): sedang/berat → 'deficient'
+  type 'brdn' (burden):    sedang/berat → 'abnormal'
+  ringan → 'borderline'  |  normal → 'normal'  |  unknown → 'borderline'
+  Key correction: Selenium was "Deficient" in v2 (threshold >=5).
+  Now "Normal" — PDF zone confirms value is in normal range.
+
+DECISION-011: Bilingual zone badges — Option B structure
+  ZONE_BADGES[zone][lang] — both languages per zone key (not per language)
+  currentLang = 'id' default. setLang('en'|'id') ready for UI toggle.
+  Language toggle button NOT built yet — deferred to next session.
+
+DECISION-012: importer.js IIFE pattern
+  QRMAImporter.importFromPayload() — not a global function.
+  Call as QRMAImporter.importFromPayload(payload, []) from confirmImport().
+  importer.js must be in 03_Scripts\ and loaded via <script> tag in HTML.
+```
+
+
+
+---
+
 ## 13. NEXT IMMEDIATE ACTIONS
 
 ```
-PRIORITY   ACTION                                                    FILE                STATUS
-1          Run final Reviewer APPROVE cycle                         current_run.yaml    PENDING
-           run_id: run_ridwan_20260525_final
-2          Promote approved JSON to fixture                         01_Data\json\        PENDING
-           (already done — copy command run)                        fixtures\
-3          Dashboard normalization layer (v3 HTML)                  qrma-dashboard-v3.html PENDING
-           - Read zone columns from CSV on import
-           - Implement ZONE_SCORES = {normal:9, ringan:6, sedang:3, berat:1}
-           - Replace minified 0–100 scoring with zone-driven logic
-           - 4-colour zone display per parameter chip
-4          Test with second patient PDF                             —                   PENDING
-           (confirms pipeline generalises beyond Ridwan)
-5          Update CLAUDE.md with session-2 decisions                CLAUDE.md           PENDING
+PRIORITY   ACTION                                                       STATUS
+1          Dashboard QA skill files                                     PENDING
+           .claude\skills\operator\QRMA_SKILL_dashboard_operator.md
+           .claude\skills\tester\QRMA_SKILL_dashboard_tester.md
+           .claude\skills\reviewer\QRMA_SKILL_dashboard_reviewer.md
+           Validate zone scoring, colour logic, import flow, no console errors
+
+2          Language toggle UI                                            PENDING
+           setLang() in zone-scoring.js is ready
+           Need: toggle button in HTML header → calls setLang() + re-renders badges
+
+3          buildAction() zone gates                                      PENDING
+           Replace numeric threshold flags with zone label checks
+           e.g. if(zd['tx-pb_zone']==='berat') instead of if(tx.pb>1.2)
+
+4          Sebum bidirectional alert in buildAction()                    PENDING
+           sk-sb ≤3 = dry skin pattern alert
+           sk-sb ≥8 = oily skin pattern alert
+
+5          Update CLAUDE.md with dashboard v3 architecture              PENDING
 ```
+
+---
+
+*End of handover document.*
+*Session 1 date: 2026-05-24  — Pipeline foundation (parser v3, mappings, zone system)*
+*Session 2 date: 2026-05-25  — Three-role QA workflow, pipeline validation, bug fixes*
+*Session 3 date: 2026-05-26  — Dashboard v3 (zone scoring, JSON import, chip display)*
+*Prepared for: Claude Code + Engineering Plugin handoff*
+
+
 
 ---
 
