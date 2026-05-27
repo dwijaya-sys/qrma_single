@@ -20,8 +20,8 @@ const ZONE_SCORES = {
 
 const ZONE_BADGES = {
   normal:  { en: 'Normal',        id: 'Normal'           },
-  ringan:  { en: 'Mild Concern',   id: 'Perlu Perhatian'  },
-  sedang:  { en: 'Action Needed',  id: 'Perlu Tindakan'   },
+  ringan:  { en: 'Mild',           id: 'Perlu Perhatian'  },
+  sedang:  { en: 'Moderate',      id: 'Perlu Tindakan'   },
   berat:   { en: 'Top Priority',   id: 'Prioritas Utama'  },
   unknown: { en: '—',              id: '—'                }
 };
