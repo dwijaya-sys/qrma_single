@@ -996,6 +996,24 @@
     "note": "Also feeds bio age pillar 3 (cj)"
   },
   {
+    "id": "Sistem Pergerakan",
+    "en": "Joint / Movement System",
+    "dashboard_id": "sk-jc",
+    "also_maps_to": ["cj"],
+    "module": "skin",
+    "normal_range": "6.458-8.133",
+    "actual_value": 0.0,
+    "needs_verification": true,
+    "direction": "lower-worse",
+    "zone_boundaries": {
+      "normal": [6.458, 8.133],
+      "ringan": [4.458, 6.458],
+      "sedang": [2.458, 4.458],
+      "berat":  [null,  2.458]
+    },
+    "note": "PDF section: Sistem Pergerakan (Movement System). Value 5.271 confirmed from PDF page 72 for Ridwan. Normal range 6.458-8.133. Zone boundaries estimated — needs verification against full PDF Referensi Standar."
+  },
+  {
     "id": "Kalium",
     "en": "Potassium",
     "dashboard_id": "cr-k",

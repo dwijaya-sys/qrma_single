@@ -18,6 +18,7 @@
     "hg": 0.077,
     "ce": 6.151,
     "cs": 2.69,
+    "cj": 5.271,
     "coq": 1.379,
     "gsh": 1.03,
     "vc": 5.013,
@@ -66,6 +67,7 @@
     "sk-ml": 0.447,
     "sk-sn": 1.433,
     "sk-ec": 6.151,
+    "sk-jc": 5.271,
     "bv_zone": "normal",
     "cp_zone": "normal",
     "art_zone": "ringan",
@@ -78,7 +80,7 @@
     "hg_zone": "normal",
     "ce_zone": "ringan",
     "cs_zone": "sedang",
-    "cj_zone": "unknown",
+    "cj_zone": "ringan",
     "coq_zone": "normal",
     "gsh_zone": "normal",
     "vc_zone": "normal",
@@ -129,20 +131,21 @@
     "sk-ml_zone": "normal",
     "sk-sn_zone": "normal",
     "sk-ec_zone": "ringan",
-    "sk-jc_zone": "unknown"
+    "sk-jc_zone": "ringan"
   },
   "meta": {
     "source": "qrma-parser-v3",
     "version": "3.0",
-    "generated_at": "2026-05-28T13:06:38.080245",
+    "generated_at": "2026-05-28T13:36:07.765431",
     "csv_source": "ridwan_2025-11-10.csv",
-    "run_id": "run_ridwan_20260528_1306",
+    "run_id": "run_ridwan_20260528_1336",
     "row_count": 1
   },
   "warnings": [
     "UNVERIFIED MAPPING: 'Tingkat Kelembaban Kulit' -> ['sk-tw'] (value=1.475) | PDF uses 'Tingkat Kelembaban Kulit' — corrected from earlier 'Kelembaban Kulit' mismatch. DIRECTION WARNING: Skin Moisture (high=good) is inverse of TEWL (high=bad). Confirm which direction the dashboard scoring expects before finalising.",
     "UNVERIFIED MAPPING: 'Tingkat Kehilangan Kelembaban Kulit' -> ['sk-tw'] (value=5.135) | PDF also contains this separate TEWL-direction entry. If both 'Tingkat Kelembaban Kulit' and this appear in the PDF, the first one extracted wins (page order). Resolve direction ambiguity before production use.",
-    "PDF PARAMETERS WITH NO MAPPING (161): Koefisien Tekanan Intraluminal | Fungsi Detoksifikasi | Fungsi Sekresi Empedu | Kandungan Lemak Hati | Serum Globulin (A/G) | Bilirubin Total (TBIL) | Alkali Phosfat (ALP) | Jumlah Cairan Empedu (TBA) | Bilirubin (DBIL) | Insulin | Polipeptida Pankreas (PP) | Glukagon | Kadar Urobilinogen | Indeks Urea Nitrogen Dalam Darah | Kapasitas Total Paru TLC | Tahanan Jalan Napas RAM | Tekanan Parsial CO2 dalam darah Arteri Paru | Arteriosklerosis Pembuluh Darah Otak | Fungsi Saraf Otak | Tingkat Sentimen | Indeks Memori (ZS) | Ukuran Penonjolan Serabut Saraf Di tulang belakang | Tingkat Perlekatan Otot Bahu | Batas Kekakuan | Umur Ligamen | Jumlah Kehilangan Kalsium | Tingkat Penebalan Tulang | Tingkat Pengeroposan Tulang | Kadar Mineral Tulang | Tingkat Pengapuran Tulang Leher | Tingkat Pengapuran Tulang Belakang | Kofisien Penebalan Tulang | Kofisien Osteoporosis | Kofisien Rematik | Alkalin Pospat Tulang | Osteocalcin | Tingkat Penyembuhan Pada Tulang Panjang | Tingkat Penyembuhan Pada Tulang Pendek | Garis Epifiseal | Kalsium | Zat besi | Tembaga | Kobalt | Mangan | Nikel | Fluor | Molibden | Vanadium | Timah | Strontium | Boron | Vitamin B2 | Vitamin B3 | Vitamin B12 | Vitamin K | Treonin | Isoleucine | Leucine | Valine | Nicotinamide | Biotin | Asam Pantotenat | Asam linoleat | α-Asam linolenat | γ-Asam linolenat | Asam arakidonat | Kadar Kelenjar Tiroid | Tingkat Sekresi Hormon Paratiroid | Tingkat Sekresi Kelenjar Adrenal | Tingkat Sekresi Kelenjar Pituitari | Tingkat Sekresi Kelenjar Pineal | Tingkat Sekresi Kelenjar Timus | Tingkat Sekresi Kelenjar Gonad | Index Sistem Imun Dalam Tonsil | Index Sumsum Tulang | Indeks Limpa | Indeks Timus | Indeks Immunoglobulin | Tingkat Kekebalan Pada Sistem Pernafasan | Tingkat Kekebalan Pada Sistem Pencernaan | Tingkat Kekebalan Pada Mukosa | Tiroksin bebas (FT4) | Tiroglobulin | Antibodi anti- tiroglobulin | Tiga triiodothyronine (T3) | Radiasi Elektromagnetik | Antimoni | Thallium | Aluminium | Tingkat Alergi Obat | Tingkat Alergi Terhadap Asap Rokok | Tingkat Alergi Terhadap Pewarna Rambut | Tingkat Alergi Terhadap Bulu Binatang | Tingkat Alergi Bahan Perhiasan Perak | Tingkat Alergi Terhadap Makanan Laut | Tingkat Alergi Terhadap Susu | Koefisien Ketidakseimbangan Metabolisme lemak | Koefisien Ketidakseimbangan jaringan adipose coklat | Koefisien Hyperinsulinemia | Koefisien Ketidakseimbangan Nukleus di Hipotalamus | Koefisien Ketidakseimbangan Kandungan Trigliserida | Tingkat Kekebalan Dikulit | Tingkat Jejak Darah Pada Kulit | Kerutan Kolagen Sekitar Mata | Lingkaran Hitam Sekitar Mata | Sumbatan Pembuluh Getah Bening | Kulit Mata Kendur | Pembengkakan | Aktifitas Sel Mata | Kelelahan visual | Gigi | Rambut dan Kulit | Sistem Endokrin | Sistem Sirkulasi | Sistem Pergerakan | Jaringan Otot | Detoksifikasi dan Metabolisme | Sistem Reproduksi | Sistem Saraf | Skeleton | Tangan Tai Lung Yin Meridian | Tangan Yangming Meridian Usus Besar | Foot Tai Lung Yin Meridian | Tangan Shao Yin Sutra Hati | Tangan usus kecil oleh matahari | Kandung kemih matahari penuh | Kaki Shao Yin Ginjal | Perikardium oleh | Tangan-Shaoyang tiga burner | kaki Empedu | Kaki Hati Jue Yin | Jen mai | Gubernur meridian | Vital meridian | Tai mai | Indeks Strok | Volume Strok(SV) | Hambatan Jantung Periferal (TRR) | Koefisien Gelombang Denyut Nadi | Saturasi Oksigen Dalam Darah Di Pembuluh Darah Otak | Volume Oksigen Dalam Darah Di Pembuluh Darah Otak | Tekanan Oksigen Dalam Darah Di Pembuluh Darah Otak | High-density lipoprotein (HDL-C) | Low-density lipoprotein (LDL-C) | Lemak Meutral | Kompleks Peredaran Imun | Tingkat Pembesaran Kelenjar Prostat | Tingkat Pengapuran Prostat | Gejala Radang Prostat | Hormon Testosteron | Hormon Gonadotropin | Transmitter Ereksi | Volume Air Mani | Waktu Pencairan | Jumlah Sperma | Tingkat Pergerakan Sperma | Fungsi Saluran Pencernaan | Fungsi Kantung Empedu | Fungsi Pankreas | Fungsi Paru | Asam Amino",
-    "DASHBOARD FIELDS NOT POPULATED (4): cj | mt-bmi | mt-wc | sk-jc"
+    "UNVERIFIED MAPPING: 'Sistem Pergerakan' -> ['sk-jc', 'cj'] (value=5.271) | PDF section: Sistem Pergerakan (Movement System). Value 5.271 confirmed from PDF page 72 for Ridwan. Normal range 6.458-8.133. Zone boundaries estimated — needs verification against full PDF Referensi Standar.",
+    "PDF PARAMETERS WITH NO MAPPING (160): Koefisien Tekanan Intraluminal | Fungsi Detoksifikasi | Fungsi Sekresi Empedu | Kandungan Lemak Hati | Serum Globulin (A/G) | Bilirubin Total (TBIL) | Alkali Phosfat (ALP) | Jumlah Cairan Empedu (TBA) | Bilirubin (DBIL) | Insulin | Polipeptida Pankreas (PP) | Glukagon | Kadar Urobilinogen | Indeks Urea Nitrogen Dalam Darah | Kapasitas Total Paru TLC | Tahanan Jalan Napas RAM | Tekanan Parsial CO2 dalam darah Arteri Paru | Arteriosklerosis Pembuluh Darah Otak | Fungsi Saraf Otak | Tingkat Sentimen | Indeks Memori (ZS) | Ukuran Penonjolan Serabut Saraf Di tulang belakang | Tingkat Perlekatan Otot Bahu | Batas Kekakuan | Umur Ligamen | Jumlah Kehilangan Kalsium | Tingkat Penebalan Tulang | Tingkat Pengeroposan Tulang | Kadar Mineral Tulang | Tingkat Pengapuran Tulang Leher | Tingkat Pengapuran Tulang Belakang | Kofisien Penebalan Tulang | Kofisien Osteoporosis | Kofisien Rematik | Alkalin Pospat Tulang | Osteocalcin | Tingkat Penyembuhan Pada Tulang Panjang | Tingkat Penyembuhan Pada Tulang Pendek | Garis Epifiseal | Kalsium | Zat besi | Tembaga | Kobalt | Mangan | Nikel | Fluor | Molibden | Vanadium | Timah | Strontium | Boron | Vitamin B2 | Vitamin B3 | Vitamin B12 | Vitamin K | Treonin | Isoleucine | Leucine | Valine | Nicotinamide | Biotin | Asam Pantotenat | Asam linoleat | α-Asam linolenat | γ-Asam linolenat | Asam arakidonat | Kadar Kelenjar Tiroid | Tingkat Sekresi Hormon Paratiroid | Tingkat Sekresi Kelenjar Adrenal | Tingkat Sekresi Kelenjar Pituitari | Tingkat Sekresi Kelenjar Pineal | Tingkat Sekresi Kelenjar Timus | Tingkat Sekresi Kelenjar Gonad | Index Sistem Imun Dalam Tonsil | Index Sumsum Tulang | Indeks Limpa | Indeks Timus | Indeks Immunoglobulin | Tingkat Kekebalan Pada Sistem Pernafasan | Tingkat Kekebalan Pada Sistem Pencernaan | Tingkat Kekebalan Pada Mukosa | Tiroksin bebas (FT4) | Tiroglobulin | Antibodi anti- tiroglobulin | Tiga triiodothyronine (T3) | Radiasi Elektromagnetik | Antimoni | Thallium | Aluminium | Tingkat Alergi Obat | Tingkat Alergi Terhadap Asap Rokok | Tingkat Alergi Terhadap Pewarna Rambut | Tingkat Alergi Terhadap Bulu Binatang | Tingkat Alergi Bahan Perhiasan Perak | Tingkat Alergi Terhadap Makanan Laut | Tingkat Alergi Terhadap Susu | Koefisien Ketidakseimbangan Metabolisme lemak | Koefisien Ketidakseimbangan jaringan adipose coklat | Koefisien Hyperinsulinemia | Koefisien Ketidakseimbangan Nukleus di Hipotalamus | Koefisien Ketidakseimbangan Kandungan Trigliserida | Tingkat Kekebalan Dikulit | Tingkat Jejak Darah Pada Kulit | Kerutan Kolagen Sekitar Mata | Lingkaran Hitam Sekitar Mata | Sumbatan Pembuluh Getah Bening | Kulit Mata Kendur | Pembengkakan | Aktifitas Sel Mata | Kelelahan visual | Gigi | Rambut dan Kulit | Sistem Endokrin | Sistem Sirkulasi | Jaringan Otot | Detoksifikasi dan Metabolisme | Sistem Reproduksi | Sistem Saraf | Skeleton | Tangan Tai Lung Yin Meridian | Tangan Yangming Meridian Usus Besar | Foot Tai Lung Yin Meridian | Tangan Shao Yin Sutra Hati | Tangan usus kecil oleh matahari | Kandung kemih matahari penuh | Kaki Shao Yin Ginjal | Perikardium oleh | Tangan-Shaoyang tiga burner | kaki Empedu | Kaki Hati Jue Yin | Jen mai | Gubernur meridian | Vital meridian | Tai mai | Indeks Strok | Volume Strok(SV) | Hambatan Jantung Periferal (TRR) | Koefisien Gelombang Denyut Nadi | Saturasi Oksigen Dalam Darah Di Pembuluh Darah Otak | Volume Oksigen Dalam Darah Di Pembuluh Darah Otak | Tekanan Oksigen Dalam Darah Di Pembuluh Darah Otak | High-density lipoprotein (HDL-C) | Low-density lipoprotein (LDL-C) | Lemak Meutral | Kompleks Peredaran Imun | Tingkat Pembesaran Kelenjar Prostat | Tingkat Pengapuran Prostat | Gejala Radang Prostat | Hormon Testosteron | Hormon Gonadotropin | Transmitter Ereksi | Volume Air Mani | Waktu Pencairan | Jumlah Sperma | Tingkat Pergerakan Sperma | Fungsi Saluran Pencernaan | Fungsi Kantung Empedu | Fungsi Pankreas | Fungsi Paru | Asam Amino",
+    "DASHBOARD FIELDS NOT POPULATED (2): mt-bmi | mt-wc"
   ]
 }
