@@ -1,6 +1,7 @@
 # parser_v3.py
 # =============================================================================
-# QRMA PDF Parser — Version 3
+# QRMA PDF Parser — Version 3.1
+# Last updated: 2026-05-27
 # =============================================================================
 #
 # Changelog from v2:
@@ -25,6 +26,20 @@
 #   UNC  clean_text()              : unchanged
 #   UNC  parse_float()             : unchanged
 #   UNC  _normalize_gender()       : unchanged
+#
+# Patch v3.1 — 2026-05-27:
+#   FIX  _flush_ref_buffer()       : changed from dict.update() (last-wins) to
+#                                    most-complete-wins merge. Prevents wrong-scale
+#                                    zone overwrite when a param appears in multiple
+#                                    PDF sections (e.g. Kekentalan Darah / bv).
+#   FIX  export_dashboard_csv()    : CSV write mode changed from append ("a") to
+#                                    overwrite ("w"). One run = one patient = one row.
+#   FIX  apply_mappings()          : Direction extension added to Tier 1 ref_standards
+#                                    path. When derive_zone() returns "unknown" and
+#                                    direction is known, apply safe-floor rule:
+#                                    higher-worse + value < normal floor  → "normal"
+#                                    lower-worse  + value > normal ceiling → "normal"
+#                                    Previously only existed in Tier 2 fallback.
 #
 # =============================================================================
 
@@ -700,6 +715,21 @@ def apply_mappings(parsed_items, primary_lookup, ref_standards):
 
         if has_zone_data:
             zone_label = derive_zone(raw_value, param_zones)
+
+            # Direction extension (Tier 1 — ref_standards path):
+            # If value falls outside all extracted zone ranges, apply safe-floor rule.
+            # higher-worse: value < normal floor  → below floor = safer → "normal"
+            # lower-worse:  value > normal ceiling → above ceiling = safer → "normal"
+            if zone_label == "unknown":
+                _dir = param_zones.get("direction", "")
+                _nrm = param_zones.get("normal")
+                if _nrm:
+                    _lo, _hi = _nrm
+                    if _dir == "higher-worse" and raw_value < _lo:
+                        zone_label = "normal"
+                    elif _dir == "lower-worse" and raw_value > _hi:
+                        zone_label = "normal"
+
             # If ref_standards had zone data but the value fell outside all
             # defined ranges (returns "unknown"), try the mappings.json fallback.
             # This handles cases where the PDF only extracted a partial zone set

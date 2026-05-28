@@ -14,9 +14,7 @@
     "id": "Kristal Atau Plak Kolesterol",
     "en": "Cholesterol Crystal / Plaque",
     "dashboard_id": "cp",
-    "also_maps_to": [
-      "cr-ch"
-    ],
+    "also_maps_to": ["cr-ch"],
     "module": "basic",
     "normal_range": "56.749-67.522",
     "actual_value": 67.24,
@@ -445,9 +443,7 @@
     "id": "Glutathione",
     "en": "Glutathione",
     "dashboard_id": "ox-gsh",
-    "also_maps_to": [
-      "gsh"
-    ],
+    "also_maps_to": ["gsh"],
     "module": "oxidative",
     "normal_range": "",
     "actual_value": 0.0,
@@ -469,9 +465,7 @@
     "id": "Timbal",
     "en": "Lead",
     "dashboard_id": "tx-pb",
-    "also_maps_to": [
-      "pb"
-    ],
+    "also_maps_to": ["pb"],
     "module": "toxic",
     "normal_range": "0.052-0.643",
     "actual_value": 0.0,
@@ -482,9 +476,7 @@
     "id": "Merkuri",
     "en": "Mercury",
     "dashboard_id": "tx-hg",
-    "also_maps_to": [
-      "hg"
-    ],
+    "also_maps_to": ["hg"],
     "module": "toxic",
     "normal_range": "0.013-0.336",
     "actual_value": 0.0,
@@ -660,9 +652,7 @@
     "id": "Tingkat Radikal Bebas Pada Kulit",
     "en": "Skin Free Radicals",
     "dashboard_id": "ox-fr",
-    "also_maps_to": [
-      "fr"
-    ],
+    "also_maps_to": ["fr"],
     "module": "oxidative",
     "normal_range": "",
     "actual_value": 0.0,
@@ -673,9 +663,7 @@
     "id": "Tingkat Kolagen Kulit",
     "en": "Skin Collagen Level",
     "dashboard_id": "sk-sc",
-    "also_maps_to": [
-      "cs"
-    ],
+    "also_maps_to": ["cs"],
     "module": "skin",
     "normal_range": "4.471-6.079",
     "actual_value": 2.69,
@@ -695,27 +683,32 @@
   },
   {
     "id": "Kantung Di Bawah Mata",
-    "en": "Under-Eye Bags Index",
-    "dashboard_id": "",
-    "also_maps_to": [],
-    "module": "",
+    "en": "Under-Eye Bags / Eye Collagen",
+    "dashboard_id": "sk-ec",
+    "also_maps_to": ["ce"],
+    "module": "skin",
     "normal_range": "0.510-3.109",
     "actual_value": 0.0,
     "needs_verification": false,
-    "note": "Under-eye bag puffiness index. Previously mapped to sk-ec+ce as a proxy, but this is NOT the eye collagen source. Correct source is Mata (6.352-8.325). Intentionally unmapped — no matching dashboard field."
+    "direction": "higher-worse",
+    "zone_boundaries": {
+      "normal": [0.510, 3.109],
+      "ringan": [3.109, 7.285],
+      "sedang": [7.285, 9.729],
+      "berat":  [9.729, null]
+    },
+    "note": "Mapped to eye collagen fields (sk-ec and ce) as closest proxy — eye bags correlate with collagen depletion. Zone boundaries confirmed from QRMA standard reference. normal_range is informational only; full 4-zone data in zone_boundaries and extracted live from PDF Referensi Standar. Direction: higher-worse (higher signal = worse collagen/eye bag status)."
   },
   {
     "id": "Mata",
-    "en": "Eye Collagen",
-    "dashboard_id": "sk-ec",
-    "also_maps_to": [
-      "ce"
-    ],
-    "module": "skin",
-    "normal_range": "6.352-8.325",
-    "actual_value": 6.151,
+    "en": "Eye",
+    "dashboard_id": "",
+    "also_maps_to": [],
+    "module": "",
+    "normal_range": "",
+    "actual_value": 0.0,
     "needs_verification": false,
-    "note": "Eye structural collagen measurement. Lower-worse direction: value below 6.352 floor = ringan zone. Corrected from Kantung Di Bawah Mata which was the previous incorrect source for sk-ec."
+    "note": "Too generic to map. No matching dashboard field."
   },
   {
     "id": "Sistem Pencernaan",
@@ -820,10 +813,7 @@
     "id": "Vitamin C",
     "en": "Vitamin C",
     "dashboard_id": "nt-vc",
-    "also_maps_to": [
-      "ox-vc",
-      "vc"
-    ],
+    "also_maps_to": ["ox-vc", "vc"],
     "module": "nutrient",
     "normal_range": "",
     "actual_value": 0.0,
@@ -845,10 +835,7 @@
     "id": "Vitamin E",
     "en": "Vitamin E",
     "dashboard_id": "nt-ve",
-    "also_maps_to": [
-      "ox-ve",
-      "ve"
-    ],
+    "also_maps_to": ["ox-ve", "ve"],
     "module": "nutrient",
     "normal_range": "",
     "actual_value": 0.0,
@@ -872,10 +859,17 @@
     "dashboard_id": "cr-ua",
     "also_maps_to": [],
     "module": "cardio",
-    "normal_range": "",
+    "normal_range": "1.435-1.987",
     "actual_value": 0.0,
     "needs_verification": false,
-    "note": "PDF uses 'Kadar Asam Urat' — corrected from earlier 'Asam Urat' mismatch"
+    "direction": "higher-worse",
+    "zone_boundaries": {
+      "normal": [1.435, 1.987],
+      "ringan": [1.987, 2.544],
+      "sedang": [2.544, 3.281],
+      "berat":  [3.281, null]
+    },
+    "note": "PDF uses 'Kadar Asam Urat'. Full 4-zone data confirmed from (Fungsi Ginjal) section. normal_range informational only — full zone data in zone_boundaries. Direction: higher-worse (elevated uric acid = gout/renal risk)."
   },
   {
     "id": "Koefisien Gula Darah",
@@ -883,12 +877,14 @@
     "dashboard_id": "bs",
     "also_maps_to": [],
     "module": "basic",
-    "normal_range": "",
+    "normal_range": "2.163-7.321",
     "actual_value": 0.0,
     "needs_verification": false,
     "direction": "bidirectional",
-    "zone_boundaries": { "normal": [2.163, 7.321] },
-    "note": "PDF uses 'Koefisien Gula Darah' — corrected from earlier 'Gula Darah' mismatch"
+    "zone_boundaries": {
+      "normal": [2.163, 7.321]
+    },
+    "note": "PDF uses 'Koefisien Gula Darah' from (Gula Dalam Darah) section. Uses 'Kisaran Yang Sehat' format — no 4-zone breakdown available. Outside normal range = berat in both directions (high = hyperglycaemia, low = hypoglycaemia). normal_range informational only."
   },
   {
     "id": "Koefisien Gula Dalam Urin",
@@ -896,20 +892,21 @@
     "dashboard_id": "mt-ug",
     "also_maps_to": [],
     "module": "metabolic",
-    "normal_range": "",
+    "normal_range": "0-2.819",
     "actual_value": 0.0,
     "needs_verification": false,
     "direction": "higher-worse",
-    "zone_boundaries": { "normal": [0.0, 2.819], "berat": [2.819, null] },
-    "note": "PDF uses 'Koefisien Gula Dalam Urin' — corrected from earlier 'Gula Urin' mismatch"
+    "zone_boundaries": {
+      "normal": [0.0, 2.819],
+      "berat":  [2.819, null]
+    },
+    "note": "PDF uses 'Koefisien Gula Dalam Urin' from (Gula Dalam Darah) section. Uses 'Kisaran Yang Sehat' format — no intermediate zones. <2.204 = negatif (healthy); 2.204-2.819 = healthy borderline; >2.819 = positif (abnormal). Full normal zone mapped as 0-2.819. Direction: higher-worse."
   },
   {
     "id": "Koenzim Q10",
     "en": "Coenzyme Q10",
     "dashboard_id": "ox-coq",
-    "also_maps_to": [
-      "coq"
-    ],
+    "also_maps_to": ["coq"],
     "module": "oxidative",
     "normal_range": "",
     "actual_value": 0.0,
@@ -933,10 +930,17 @@
     "dashboard_id": "sk-tw",
     "also_maps_to": [],
     "module": "skin",
-    "normal_range": "",
+    "normal_range": "0.218-0.953",
     "actual_value": 0.0,
-    "needs_verification": true,
-    "note": "PDF uses 'Tingkat Kelembaban Kulit' — corrected from earlier 'Kelembaban Kulit' mismatch. DIRECTION WARNING: Skin Moisture (high=good) is inverse of TEWL (high=bad). Confirm which direction the dashboard scoring expects before finalising."
+    "needs_verification": false,
+    "direction": "higher-worse",
+    "zone_boundaries": {
+      "normal": [0.218, 0.953],
+      "ringan": [0.953, 1.623],
+      "sedang": [1.623, 2.369],
+      "berat":  [2.369, null]
+    },
+    "note": "PDF uses 'Tingkat Kelembaban Kulit'. Zone boundaries confirmed from QRMA standard reference. normal_range updated and is informational only; full 4-zone data in zone_boundaries and extracted live from PDF Referensi Standar. Direction: higher-worse — QRMA device measures excessive moisture/sebum accumulation; higher signal indicates abnormal barrier condition, not simply 'more moisture is better'."
   },
   {
     "id": "Tingkat Kehilangan Kelembaban Kulit",
@@ -944,10 +948,17 @@
     "dashboard_id": "sk-tw",
     "also_maps_to": [],
     "module": "skin",
-    "normal_range": "",
+    "normal_range": "2.214-4.158",
     "actual_value": 0.0,
-    "needs_verification": true,
-    "note": "PDF also contains this separate TEWL-direction entry. If both 'Tingkat Kelembaban Kulit' and this appear in the PDF, the first one extracted wins (page order). Resolve direction ambiguity before production use."
+    "needs_verification": false,
+    "direction": "higher-worse",
+    "zone_boundaries": {
+      "normal": [2.214, 4.158],
+      "ringan": [4.158, 6.076],
+      "sedang": [6.076, 7.983],
+      "berat":  [7.983, null]
+    },
+    "note": "PDF also contains this TEWL-direction entry alongside Tingkat Kelembaban Kulit. Both map to sk-tw — whichever appears first in the PDF (page order) wins. Zone boundaries confirmed from QRMA standard reference. normal_range is informational only; full 4-zone data in zone_boundaries and extracted live from PDF Referensi Standar. Direction: higher-worse (greater moisture loss = worse skin barrier)."
   },
   {
     "id": "Kandungan Kelenjar Lemak Kulit",
@@ -986,9 +997,7 @@
     "id": "Kolagen Sendi",
     "en": "Joint Collagen",
     "dashboard_id": "sk-jc",
-    "also_maps_to": [
-      "cj"
-    ],
+    "also_maps_to": ["cj"],
     "module": "skin",
     "normal_range": "",
     "actual_value": 0.0,
@@ -999,9 +1008,7 @@
     "id": "Kalium",
     "en": "Potassium",
     "dashboard_id": "cr-k",
-    "also_maps_to": [
-      "nt-k"
-    ],
+    "also_maps_to": ["nt-k"],
     "module": "cardio",
     "normal_range": "",
     "actual_value": 0.0,
@@ -1012,9 +1019,7 @@
     "id": "Magnesium",
     "en": "Magnesium",
     "dashboard_id": "cr-mg",
-    "also_maps_to": [
-      "nt-mg"
-    ],
+    "also_maps_to": ["nt-mg"],
     "module": "cardio",
     "normal_range": "",
     "actual_value": 0.0,
@@ -1069,24 +1074,22 @@
     "id": "Koefisien Sekresi Insulin",
     "en": "Insulin Secretion Coefficient",
     "dashboard_id": "ins",
-    "also_maps_to": [
-      "mt-ins"
-    ],
+    "also_maps_to": ["mt-ins"],
     "module": "basic",
-    "normal_range": "",
+    "normal_range": "2.967-3.528",
     "actual_value": 0.0,
     "needs_verification": false,
     "direction": "bidirectional",
-    "zone_boundaries": { "normal": [2.967, 3.528] },
-    "note": "Same value feeds bio age basic module (ins) and metabolic risk module (mt-ins)"
+    "zone_boundaries": {
+      "normal": [2.967, 3.528]
+    },
+    "note": "Same value feeds bio age basic module (ins) and metabolic risk module (mt-ins). Uses 'Kisaran Yang Sehat' format — no 4-zone breakdown. Outside normal range = berat in both directions (high = obesity risk, low = diabetes-like symptoms). normal_range informational only."
   },
   {
     "id": "Hipoksia",
     "en": "Cellular Hypoxia Index",
     "dashboard_id": "hyp",
-    "also_maps_to": [
-      "ox-hyp"
-    ],
+    "also_maps_to": ["ox-hyp"],
     "module": "basic",
     "normal_range": "",
     "actual_value": 0.0,
@@ -1097,16 +1100,16 @@
     "id": "PH",
     "en": "Blood / Body pH",
     "dashboard_id": "ph",
-    "also_maps_to": [
-      "ox-ph"
-    ],
+    "also_maps_to": ["ox-ph"],
     "module": "basic",
-    "normal_range": "",
+    "normal_range": "3.156-3.694",
     "actual_value": 0.0,
     "needs_verification": false,
     "direction": "bidirectional",
-    "zone_boundaries": { "normal": [3.156, 3.694] },
-    "note": "PDF uses bare 'PH' — corrected from earlier 'PH Darah' mismatch. Feeds bio age (ph) and oxidative module (ox-ph)"
+    "zone_boundaries": {
+      "normal": [3.156, 3.694]
+    },
+    "note": "PDF uses bare 'PH' from (Kualitas Fisik Dasar) section. Feeds bio age (ph) and oxidative module (ox-ph). 3-zone custom format: >3.694 = Alkalin, <3.156 = Keasaman. Outside normal = berat in both directions. normal_range informational only."
   },
   {
     "id": "Lingkar Pinggang",
