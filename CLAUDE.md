@@ -93,7 +93,7 @@ All scoring functions read zone labels from `window.zoneData[fieldId + '_zone']`
 
 ## Scoring Architecture
 
-All 7 scoring functions are zone-driven (replaced in v3). No raw numeric thresholds.
+All 7 scoring functions are zone-driven (v3). No raw numeric thresholds in scoring functions.
 
 ```
 cBioAge()   zone burden → weighted 3-pillar bio age offset
@@ -111,11 +111,14 @@ calcAll()   master orchestrator
 
 **Display bands:** Low Concern (8–10) · Monitor (4–7) · Needs Lab Confirmation (1–3)
 
+**Note:** buildAction() still uses raw numeric thresholds from PDF reference ranges — this is
+valid (thresholds sourced from PDF) but zone-gate migration is deferred to backlog.
+
 **Confirmed correct — do not re-open:**
 ```
 sk-sc = 2.69 → "sedang"  (berat threshold is < 1.453)
 ox-sel       → "normal"  (v2 threshold was wrong; v3 zone-based is correct)
-tx-pb        → "sedang"  for Ridwan (not berat)
+tx-pb = 0.144 → "normal" (PDF range 0.052-0.643; prior "sedang" baseline was incorrect)
 ```
 
 ---
@@ -134,12 +137,14 @@ tx-pb        → "sedang"  for Ridwan (not berat)
 8   action      Aggregated    Inherits from modules   output layer only
 ```
 
-**Permanent gaps** (not fixable from parser — not failures):
+**Permanent gaps** (structurally absent from PDF — not failures):
 ```
-cj, sk-jc   Kolagen Sendi not a table row in PDF
-mt-bmi      Kegemukan is a section heading in PDF
+mt-bmi      Kegemukan is a section heading in PDF, not a data row
 mt-wc       Lingkar Pinggang not a table row in PDF
 ```
+
+**Note:** cj and sk-jc were previously listed as permanent gaps. Both now populate correctly
+via Sistem Pergerakan mapping in mappings.json (Kolagen form, page 72).
 
 ---
 
@@ -166,20 +171,31 @@ Shadow:    --shsm --shmd --shlg  |  Transition: --tr
 
 ---
 
-## Pending Changes (implement in this order)
+## Pending Changes (backlog)
 
 ```
-1  Language toggle UI button
-   setLang() is ready in zone-scoring.js — add button to HTML header
-   calls setLang('en'|'id') + re-renders zone badges
+1  buildAction() zone gates — DEFERRED
+   v2 numeric thresholds are valid (sourced from PDF reference ranges).
+   Zone-gate migration is a code quality improvement, not a correctness fix.
+   Implement when module metadata object is formalized.
 
-2  buildAction() zone gates
-   Currently uses raw numeric thresholds — replace with zone label checks
-   if (zd['tx-pb_zone'] === 'berat') not if (tx.pb > 1.2)
+2  Parameter name translation (ID/EN display labels)
+   Plan: add en_display and id_display fields to mappings.json,
+   add data-field-id to bmr() label spans, update language toggle.
+   Data source already exists in mappings.json.
 
-3  Sebum bidirectional alert in buildAction()
-   sk-sb ≤ 3 → dry skin pattern alert
-   sk-sb ≥ 8 → oily skin pattern alert
+3  Manual input form for mt-bmi and mt-wc
+   These permanent gaps require operator manual entry.
+   Build as extra step in import modal or editable panel post-import.
+   Asian thresholds: Men ≥90cm, Women ≥80cm (not European IDF values).
+
+4  Flask microserver (Option B)
+   PDF import directly inside HTML app.
+   User drops PDF → localhost Flask server runs pipeline → dashboard loads.
+   PyWebView wrapper (Option C) to follow for full desktop packaging.
+
+5  sk-tw direction ambiguity — needs investigation
+   Flagged by Reviewer in run_ridwan_20260528. Review zone direction.
 ```
 
 ---
@@ -188,11 +204,13 @@ Shadow:    --shsm --shmd --shlg  |  Transition: --tr
 
 ```
 PATIENT     GENDER  FIELDS  ZONES   BIO AGE  CONSOLE
-Ridwan      Male    62/64   62/62   42y +2y  Clean
-Kamiyanti   Female  60/64   60/60   43y +2y  Clean
+Ridwan      Male    62/64   62/62   42y +2y  Clean (debug logs retained intentionally)
+Kamiyanti   Female  62/64   62/62   43y +2y  Clean
+Frans       —       —       —       53y +6y  Clean
 ```
 
-Fixture: `01_Data\json\fixtures\ridwan_2025-11-10.json`
+Fixture: `01_Data\json\ridwan_2025-11-10.json`  
+QA reports: `90_Pipeline_Reports\`
 
 ---
 
@@ -205,6 +223,8 @@ Run the three dashboard skill files before any release:
 .claude\skills\reviewer\QRMA_SKILL_dashboard_reviewer.md
 ```
 
+Last QA run: 2026-05-28 — APPROVED (run_ridwan_20260528)
+
 ---
 
 ## Working Rules for Claude Code
@@ -213,3 +233,4 @@ Run the three dashboard skill files before any release:
 - Versioning: next versions are `qrma-dashboard-v4.html`, `csv_exporter_v3.py`, `parser_v4.py`.
 - `database.py` has no version suffix — shared with another dev, do not rename.
 - Full architecture history: `HANDOVER.md`
+- Changelog: `90_Pipeline_Reports\CHANGELOG.md`
