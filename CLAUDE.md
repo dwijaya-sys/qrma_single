@@ -188,7 +188,7 @@ Shadow:    --shsm --shmd --shlg  |  Transition: --tr
 
 ```
 PATIENT     GENDER  FIELDS  ZONES   BIO AGE  CONSOLE
-Ridwan      Male    60/64   60/60   42y +2y  Clean
+Ridwan      Male    62/64   62/62   42y +2y  Clean
 Kamiyanti   Female  60/64   60/60   43y +2y  Clean
 ```
 

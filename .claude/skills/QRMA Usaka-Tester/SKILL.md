@@ -24,8 +24,8 @@ Read: operator_report             → values to validate (path in current_run.ya
 Read: baseline_fixture            → 01_Data\json\fixtures\ridwan_2025-11-10.json
 
 Quality gates (from current_run.yaml):
-  expected_fields_populated: 60
-  expected_zone_coverage:    60
+  expected_fields_populated: 62
+  expected_zone_coverage:    62
   max_allowed_warnings:       2
 ```
 
@@ -35,12 +35,12 @@ Quality gates (from current_run.yaml):
 
 | Item | Expected | Actual (from Operator) | Verdict |
 |------|----------|------------------------|---------|
-| Fields populated | 60 | ? | PASS / FAIL |
-| Zones populated | 60 | ? | PASS / FAIL |
+| Fields populated | 62 | ? | PASS / FAIL |
+| Zones populated | 62 | ? | PASS / FAIL |
 | Import warnings count | ≤ 2 (excl. permanent gaps) | ? | PASS / WARN |
 | Permanent gaps present in warnings | cj, sk-jc, mt-bmi, mt-wc | ? | PASS / FAIL |
 
-**FAIL condition:** Fields < 60 or zones < 60 without explanation.
+**FAIL condition:** Fields < 62 or zones < 62 without explanation.
 **WARN condition:** More than 2 unexpected import warnings.
 
 ---
@@ -249,7 +249,7 @@ verdict:       PASS / WARN / FAIL
 
 CHECK 1 — Import Integrity
   fields_populated:  N/64  → PASS/FAIL
-  zones_populated:   N/60  → PASS/FAIL
+  zones_populated:   N/62  → PASS/FAIL
   unexpected_warnings: N   → PASS/WARN
   permanent_gaps in warnings: yes/no → PASS/FAIL
 
@@ -313,9 +313,12 @@ DECISION-2026-05-26: ox-sel = "normal" is CORRECT (v2 threshold was wrong)
   Selenium corrected to zone-based scoring in v3.
   If tester sees ox-sel chip = "normal" → PASS, do not flag.
 
-DECISION-2026-05-26: tx-pb is "sedang" for Ridwan (value in sedang range)
-  If tester sees tx-pb chip = "sedang" (amber) → PASS.
-  If tester sees tx-pb chip = "berat" (red) → FAIL — regression.
+DECISION-004: tx-pb = 0.144 → "normal" is CORRECT
+  PDF normal range: 0.052-0.643
+  Ridwan value 0.144 is within normal range.
+  Previous baseline claiming "sedang" was incorrect.
+  If tester sees tx-pb chip = "normal" → PASS.
+  If tester sees tx-pb chip = "sedang" or "berat" → FAIL.
 ```
 
 ---

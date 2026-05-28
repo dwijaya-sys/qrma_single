@@ -926,6 +926,7 @@ function _showImportModal(row){
 }
 
 function confirmImport(){
+  // DEBUG — retain for development; remove before production release
   console.log('mode:', _importMode);
   console.log('payload:', !!_jsonPayload, _jsonPayload ? Object.keys(_jsonPayload) : 'null');
   // JSON import path

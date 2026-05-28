@@ -45,8 +45,8 @@ BLOCK-07  Any forbidden language phrase found in dashboard output
 BLOCK-08  Bio Age delta direction is inverted
           (expected positive for Ridwan; negative = scoring regression)
 BLOCK-09  Any confidence label is missing from a module page
-BLOCK-10  tx-pb chip shows "berat" (red) for Ridwan
-          (confirmed sedang — this is a zone regression, see DECISION-004 below)
+BLOCK-10  tx-pb chip shows "sedang" or "berat" for Ridwan
+          (confirmed normal — 0.144 is within PDF normal range 0.052-0.643)
 BLOCK-11  sk-sc chip shows "berat" (red) for Ridwan
           (confirmed sedang — sk-sc=2.69 is in 1.453–2.879 range)
 ```
@@ -79,7 +79,7 @@ before accepting it as a REJECT reason. Common pitfalls:
 ```
 sk-sc = "sedang" → CORRECT per DECISION-004.  If Tester flagged this as FAIL, override.
 ox-sel = "normal" → CORRECT (v2 threshold was wrong, v3 zone-based is right).
-tx-pb = "sedang"  → CORRECT for Ridwan. Only flag if "berat".
+tx-pb = "normal"  → CORRECT for Ridwan (0.144 within 0.052–0.643). Flag if "sedang" or "berat".
 ```
 
 **Do not reject for permanent gaps:**
@@ -202,7 +202,7 @@ Any deviation from this table in any rendered chip is a BLOCK-03 / BLOCK-04 viol
 
 ```
 PATIENT     GENDER  FIELDS  ZONES   BIO AGE  SKIN         CONSOLE
-Ridwan      Male    60/64   60/60   42y +2y  ~66% orange  Clean
+Ridwan      Male    62/64   62/62   42y +2y  ~66% orange  Clean
 Kamiyanti   Female  60/64   60/60   43y +2y  ~63% orange  Clean
 ```
 
