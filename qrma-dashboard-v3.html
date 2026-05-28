@@ -925,6 +925,8 @@ function _showImportModal(row){
 }
 
 function confirmImport(){
+  console.log('mode:', _importMode);
+  console.log('payload:', !!_jsonPayload, _jsonPayload ? Object.keys(_jsonPayload) : 'null');
   // JSON import path
   if(_importMode==='json'&&_jsonPayload){
     // Populate window.zoneData BEFORE importFromPayload calls calcAll()
