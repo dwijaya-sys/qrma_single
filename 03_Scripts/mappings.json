@@ -436,7 +436,7 @@
     "dashboard_id": "nt-fo",
     "also_maps_to": [],
     "module": "nutrient",
-    "normal_range": "",
+    "normal_range": "1.449-2.246",
     "actual_value": 0.0,
     "needs_verification": false,
     "note": ""
@@ -811,7 +811,7 @@
     "dashboard_id": "nt-b6",
     "also_maps_to": [],
     "module": "nutrient",
-    "normal_range": "",
+    "normal_range": "0.824-1.942",
     "actual_value": 0.0,
     "needs_verification": false,
     "note": ""
@@ -825,7 +825,7 @@
       "vc"
     ],
     "module": "nutrient",
-    "normal_range": "",
+    "normal_range": "4.543-5.023",
     "actual_value": 0.0,
     "needs_verification": false,
     "note": "Same value feeds nutrient module (nt-vc), oxidative module (ox-vc), and bio age pillar 3 (vc)"
@@ -836,7 +836,7 @@
     "dashboard_id": "nt-d3",
     "also_maps_to": [],
     "module": "nutrient",
-    "normal_range": "",
+    "normal_range": "5.327-7.109",
     "actual_value": 0.0,
     "needs_verification": false,
     "note": ""
@@ -850,7 +850,7 @@
       "ve"
     ],
     "module": "nutrient",
-    "normal_range": "",
+    "normal_range": "4.826-6.013",
     "actual_value": 0.0,
     "needs_verification": false,
     "note": "Same value feeds nutrient module (nt-ve), oxidative module (ox-ve), and bio age pillar 3 (ve)"
@@ -1021,7 +1021,7 @@
       "nt-k"
     ],
     "module": "cardio",
-    "normal_range": "",
+    "normal_range": "0.689-0.987",
     "actual_value": 0.0,
     "needs_verification": false,
     "note": "Same value feeds cardio-renal (cr-k) and nutrient sufficiency (nt-k)"
@@ -1034,7 +1034,7 @@
       "nt-mg"
     ],
     "module": "cardio",
-    "normal_range": "",
+    "normal_range": "0.568-0.992",
     "actual_value": 0.0,
     "needs_verification": false,
     "note": "Same value feeds cardio-renal (cr-mg) and nutrient sufficiency (nt-mg)"
@@ -1045,7 +1045,7 @@
     "dashboard_id": "nt-io",
     "also_maps_to": [],
     "module": "nutrient",
-    "normal_range": "",
+    "normal_range": "1.421-5.490",
     "actual_value": 0.0,
     "needs_verification": false,
     "note": ""
@@ -1056,7 +1056,7 @@
     "dashboard_id": "nt-si",
     "also_maps_to": [],
     "module": "nutrient",
-    "normal_range": "",
+    "normal_range": "1.425-5.872",
     "actual_value": 0.0,
     "needs_verification": false,
     "note": ""
