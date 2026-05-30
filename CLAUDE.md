@@ -2,40 +2,25 @@
 
 ## Project Identity
 
-**Active file:** `qrma-dashboard-v3.html`  
-**Root:** `F:\TeleTCM_Project\qrma_single\`  
-**Format:** Single HTML file + two companion scripts loaded via `<script>` tags  
-**Brand:** Swasthya Usadha | Program: Usaka Wellness  
-**Purpose:** QRMA PDF values → structured health screening dashboard. Screening only — not diagnostic.
-
----
-
-## Active File Inventory
-
-```
-FILE                          VER      ROLE
-qrma-dashboard-v3.html        v3       ACTIVE dashboard
-03_Scripts\zone-scoring.js    v1.0     Zone-to-score module (loaded by HTML)
-03_Scripts\importer.js        v1.5.1   JSON importer adapter (IIFE: QRMAImporter)
-03_Scripts\csv_exporter_v2.py v2       PDF → CSV (imports from parser_v3)
-03_Scripts\parser_v3.py       v3       PDF → raw values + zones + SQLite
-03_Scripts\mappings.json      current  Indonesian PDF name → dashboard field ID
-database.py                   stable   SQLAlchemy models — shared, do not rename
-```
-
-**Do not deploy:** `qrma-dashboard-v2.html` (superseded)
+**Name:** QRMA Health Screening Dashboard  
+**Version target:** v4 (successor to qrma-dashboard-v3.html)  
+**Root folder:** `F:\TeleTCM_Project\qrma_single\`  
+**Output format:** Single self-contained HTML file with embedded CSS and JavaScript  
+**Purpose:** Convert QRMA/bioresonance device report values into a structured, domain-level health screening dashboard for clinician-assisted review.
 
 ---
 
 ## Non-Negotiable Product Rules
 
-1. **Never produce diagnostic output.** No "you have X", no % probability of a medical event.
-2. **Every abnormal flag answers three questions:** What? What could it suggest? What test confirms it?
-3. **Food-first** before any supplement or clinical recommendation.
-4. **Confidence labels** visible on every module and dashboard summary: `Well-supported` / `Exploratory` / `Needs lab confirmation`.
-5. **Approved alert language only.** See Alert Language section.
-6. **Default values load immediately** — no blank-state on first open.
-7. **Single HTML file.** No npm, no bundlers, no frameworks.
+These rules must be preserved in every change, refactor, or new feature:
+
+1. **Never produce diagnostic output.** No sentence may say "you have X", "this means disease Y", or assign a percentage probability to a medical event.
+2. **Every abnormal flag must answer three questions:** What is flagged? What could this pattern suggest? What standard lab test could confirm or refute it?
+3. **Food-first advice** must accompany every domain that shows a flag before any supplement or clinical recommendation.
+4. **Confidence labels** must remain visible on every module screen and on the dashboard summary. Labels are: `Well-supported`, `Exploratory`, or `Needs lab confirmation`.
+5. **Approved alert language only.** See the Alert Language section below.
+6. **The app must run with default values immediately** — no blank-state confusion on first load.
+7. **Single HTML file for the dashboard.** No build step, no framework, no external dependencies beyond CDN links already declared in `<head>`. The optional Flask microserver (`03_Scripts/server.py`) handles PDF pipeline automation only — it is a separate process, never embedded in the HTML. The dashboard must remain fully functional without the server running.
 
 ---
 
@@ -43,194 +28,466 @@ database.py                   stable   SQLAlchemy models — shared, do not rena
 
 | Layer | Choice |
 |---|---|
-| Styling | Embedded CSS, CSS custom properties |
-| Logic | Vanilla JS, no framework |
-| Zone scoring | `zone-scoring.js` — must load before inline `<script>` |
-| JSON import | `importer.js` — IIFE, access as `QRMAImporter.importFromPayload()` |
-| Charts | Chart.js 4.4.0 |
+| Structure | HTML5, semantic sectioning |
+| Styling | Embedded CSS with CSS custom properties (design tokens) |
+| Logic | Vanilla JavaScript, no framework |
+| Charts | Chart.js 4.4.0 (radar + bar charts) |
 | Icons | Lucide (unpkg CDN) |
-| Fonts | Cabinet Grotesk (headings), Satoshi (body) — Fontshare |
-| Theme | `data-theme="dark"` on `<html>` |
+| Fonts | Fontshare — Cabinet Grotesk (headings), Satoshi (body) |
+| Theme | Light/dark via `data-theme` attribute on `<html>` |
 
-**Script load order in `<head>` (must be preserved):**
-```html
-<script src="03_Scripts/zone-scoring.js"></script>
-<script src="03_Scripts/importer.js"></script>
-```
+Do not introduce npm, bundlers, React, Vue, or any framework unless explicitly instructed.
 
 ---
 
-## Zone System
+## Architecture Pattern
+
+The app is a **single-page application** inside one HTML file. Navigation is JS-driven: sections are hidden/shown via a `nav(id)` function. No routing library is used.
+
+### Preferred internal code organization (even inside one file)
 
 ```
-ZONE      SCORE   CSS CLASS     COLOUR TOKEN   PDF LABEL
-normal  → 9       zone-normal   --ok           Normal(-)
-ringan  → 6       zone-ringan   --blue         Abnormal Ringan(+)
-sedang  → 3       zone-sedang   --gold         Abnormal Sedang(++)
-berat   → 1       zone-berat    --err          Abnormal Berat(+++)
-unknown → 0       zone-unknown  --txtM         —
+CONFIG / CONSTANTS
+  - thresholds object
+  - pillar weights
+  - module metadata array
+
+SCORE ENGINE
+  - cBioAge()
+  - cOx()
+  - cTx()
+  - cMt()
+  - cCr()
+  - cNt()
+  - cSk()
+  - calcAll()   ← master orchestrator
+
+RENDER HELPERS
+  - se(id, val, cls)
+  - aal(type, title, body)
+  - bar(label, val, max, cls)
+  - bmr(name, val, status)
+  - ftrow(title, items)
+  - lbl(score, lo, hi)
+  - clrc(score, lo, hi)
+
+UI / DOM
+  - nav(page)
+  - drawCharts(scores)
+  - buildAction(domainData)
+
+EVENT LISTENERS
+  - DOMContentLoaded
+  - theme toggle
 ```
 
-**Module card colour** (worst zone wins):
-```
-any berat  → cbad  (red)
-any sedang → cwarn (orange)
-else       → cok   (green)
-```
-
-**`zone-scoring.js` public API:**
-```javascript
-scoreFromZone(zone)  → number
-getBadge(zone)       → string (currentLang: 'id' default)
-getColor(zone)       → CSS class string
-setLang('en'|'id')   → void
-```
-
-**`window.zoneData`** — populated from JSON payload before `importFromPayload()` is called.  
-All scoring functions read zone labels from `window.zoneData[fieldId + '_zone']`.
-
----
-
-## Scoring Architecture
-
-All 7 scoring functions are zone-driven (v3). No raw numeric thresholds in scoring functions.
-
-```
-cBioAge()   zone burden → weighted 3-pillar bio age offset
-cOx()       ax (antioxidant reserve) + px (pro-oxidant load)
-cTx()       hm (heavy metals) + lb (lifestyle burden)
-cMt()       gc (glycemic) + lp (lipid) + bmi/wc
-cCr()       cai (cardiac) + ri (renal)
-cNt()       resilience — avg zone score × 10 nutrients
-cSk()       resilience — cl (collagen) + bf (barrier) + sn
-calcAll()   master orchestrator
-```
-
-**Risk modules** (higher = more concern): Oxidative, Toxic, Metabolic, Cardio-Renal  
-**Resilience modules** (higher = better): Nutrient, Skin
-
-**Display bands:** Low Concern (8–10) · Monitor (4–7) · Needs Lab Confirmation (1–3)
-
-**Note:** buildAction() still uses raw numeric thresholds from PDF reference ranges — this is
-valid (thresholds sourced from PDF) but zone-gate migration is deferred to backlog.
-
-**Confirmed correct — do not re-open:**
-```
-sk-sc = 2.69 → "sedang"  (berat threshold is < 1.453)
-ox-sel       → "normal"  (v2 threshold was wrong; v3 zone-based is correct)
-tx-pb = 0.144 → "normal" (PDF range 0.052-0.643; prior "sedang" baseline was incorrect)
-```
+Keep thresholds and weights as named constants near the top of the script block, not buried inside functions.
 
 ---
 
 ## The 8 Modules
 
-```
-#   ID          SCORE TYPE    CONFIDENCE              KEY FIELD IDs
-1   basic       Bio age est.  Well-supported          bv,cp,art,ins,bs,fr,hyp,ph,pb,hg,ce,cs,cj,coq,gsh,vc,ve,ost
-2   oxidative   Risk↑worse    Exploratory             ox-gsh,ox-coq,ox-vc,ox-ve,ox-sel,ox-fr,ox-hyp,ox-ph
-3   toxic       Risk↑worse    Needs lab confirm       tx-pb,tx-hg,tx-cd,tx-as,tx-st,tx-tb,tx-ps
-4   metabolic   Risk↑worse    Well-supported          mt-tg,mt-ug,mt-ins,mt-fm,mt-bmi,mt-wc
-5   cardio      Risk↑worse    Needs lab confirm       cr-ch,cr-vf,cr-lv,cr-ua,cr-pt,cr-k,cr-mg
-6   nutrient    Resilience↑   Exploratory             nt-zn,nt-mg,nt-k,nt-io,nt-si,nt-b6,nt-vc,nt-d3,nt-ve,nt-fo
-7   skin        Resilience↑   Exploratory             sk-sc,sk-el,sk-tw,sk-sb,sk-ml,sk-sn,sk-ec,sk-jc
-8   action      Aggregated    Inherits from modules   output layer only
-```
+### Module 1 — Biological Age & Multisystem Stress Index
+**Confidence:** Well-supported (as a heuristic screening feature, not a validated medical age calculator)  
+**Score direction:** Output is an age estimate + delta, not a 0–100 risk score  
 
-**Permanent gaps** (structurally absent from PDF — not failures):
-```
-mt-bmi      Kegemukan is a section heading in PDF, not a data row
-mt-wc       Lingkar Pinggang not a table row in PDF
-```
+**3-Pillar model (must be preserved):**
+- Pillar 1: Metabolic / Vascular Wear — blood viscosity, cholesterol plaque, arteriosclerosis, insulin secretion, blood sugar
+- Pillar 2: Oxidative / Toxic Burden — free radicals, hypoxia, pH, heavy metals
+- Pillar 3: Regenerative Deficits — collagen signals, antioxidant reserves, nutrient status
 
-**Note:** cj and sk-jc were previously listed as permanent gaps. Both now populate correctly
-via Sistem Pergerakan mapping in mappings.json (Kolagen form, page 72).
+**Key outputs:** Biological Age, Chronological Age, Age Delta, per-pillar bars  
+**Alert triggers:**
+- Delta > 3 years → monitor
+- Delta > 10 years → high-priority screening follow-up
+- Metabolic pillar dominates → prioritize HbA1c, fasting glucose, fasting insulin, lipid panel
+- Oxidative pillar dominates → optional inflammation markers only if clinician deems relevant
+- Regenerative pillar dominates → nutrient review, protein quality, sleep/recovery workup
 
 ---
 
-## Alert Language
+### Module 2 — Oxidative Stress & Recovery
+**Confidence:** Exploratory / Needs lab confirmation  
+**Score direction:** Risk (higher = more concern)  
 
-**Approved:** "Pattern suggests…" · "Screening flag…" · "Consider confirming with…" · "Monitor trend…" · "Below / Higher-than reference range pattern…" · "Low concern"
+**Inputs:** Glutathione, CoQ10, Vitamin C, Vitamin E, Selenium, Skin Free Radicals  
+**Optional:** Hypoxia signal, pH stress signal  
 
-**Forbidden:** "You have…" · "This means disease…" · "X% risk of…" · "Poisoning" · "Detox" · "Confirmed body burden" · "Toxic syndrome" · "Heart attack chance" · "Kidney failure risk"
+**Two sub-scores:**
+- Antioxidant Reserve (glutathione, CoQ10, Vit C, Vit E, Se)
+- Pro-oxidant Load (skin free radicals, hypoxia deviation, pH imbalance)
 
----
+**Food-first:** Citrus, berries, leafy greens, nuts/seeds, Brazil nuts (cautious), polyphenol-rich foods  
+**Confirmatory tests:** hsCRP, standard nutrition review, optional oxidative-stress markers  
 
-## Design Tokens (preserve all names)
-
-```
-Colors:    --pri --priH --priHi  |  --ok --okHi  |  --warn --warnHi  |  --err --errHi
-           --gold --goldHi  |  --blue --blueHi  |  --purp --purpHi
-Surface:   --bg --surf --surf2 --sOff --sOff2 --div --brd
-Text:      --txt --txtM --txtF
-Radius:    --rsm --rmd --rlg --rxl --rfull
-Spacing:   --sp1 → --sp16
-Type:      --text-xs/sm/base/lg/xl  |  --fD (Cabinet Grotesk)  --fB (Satoshi)
-Shadow:    --shsm --shmd --shlg  |  Transition: --tr
-```
+**Developer note:** Keep visually distinct from Module 3. Low antioxidants must NOT auto-trigger a toxin alert.
 
 ---
 
-## Pending Changes (backlog)
+### Module 3 — Toxic Exposure Flags
+**Confidence:** Needs lab confirmation  
+**Score direction:** Risk (higher = more concern)  
 
-```
-1  buildAction() zone gates — DEFERRED
-   v2 numeric thresholds are valid (sourced from PDF reference ranges).
-   Zone-gate migration is a code quality improvement, not a correctness fix.
-   Implement when module metadata object is formalized.
+**Inputs:** Lead, Mercury, Cadmium, Arsenic, Stimulant exposure, Tobacco/Nicotine, Pesticide residue  
 
-2  Parameter name translation (ID/EN display labels)
-   Plan: add en_display and id_display fields to mappings.json,
-   add data-field-id to bmr() label spans, update language toggle.
-   Data source already exists in mappings.json.
+**Two sub-scores:**
+- Heavy Metal Index
+- Lifestyle / Exposure Burden Index
 
-3  Manual input form for mt-bmi and mt-wc
-   These permanent gaps require operator manual entry.
-   Build as extra step in import modal or editable panel post-import.
-   Asian thresholds: Men ≥90cm, Women ≥80cm (not European IDF values).
+**Alert triggers and confirmatory tests:**
+- Elevated lead → Whole blood lead level (BLL)
+- Elevated mercury → Blood total mercury + urine mercury speciation
+- Elevated cadmium → Urine cadmium (first-morning void)
+- Elevated arsenic → Speciated urine arsenic
+- Tobacco signal → Cotinine if clinically useful, otherwise history-taking
 
-4  Flask microserver (Option B)
-   PDF import directly inside HTML app.
-   User drops PDF → localhost Flask server runs pipeline → dashboard loads.
-   PyWebView wrapper (Option C) to follow for full desktop packaging.
-
-5  sk-tw direction ambiguity — needs investigation
-   Flagged by Reviewer in run_ridwan_20260528. Review zone direction.
-```
+**Food-first (exposure reduction framing):** Filtered water, reduce high-risk seafood, wash produce, improve protein/fiber/micronutrient sufficiency  
+**Forbidden language:** "detox", "poisoning", "toxicity syndrome", "confirmed body burden"
 
 ---
 
-## Validated Baseline
+### Module 4 — Metabolic Risk
+**Confidence:** Well-supported / Needs lab confirmation  
+**Score direction:** Risk (higher = more concern)  
 
-```
-PATIENT     GENDER  FIELDS  ZONES   BIO AGE  CONSOLE
-Ridwan      Male    62/64   62/62   42y +2y  Clean (debug logs retained intentionally)
-Kamiyanti   Female  62/64   62/62   43y +2y  Clean
-Frans       —       —       —       53y +6y  Clean
-```
+**Inputs:** Triglyceride imbalance, Urine glucose coefficient, Insulin secretion coefficient, Fat-metabolism imbalance, BMI, Waist circumference  
 
-Fixture: `01_Data\json\ridwan_2025-11-10.json`  
-QA reports: `90_Pipeline_Reports\`
+**Three sub-scores:**
+- Glycemic Burden
+- Lipid Burden
+- Anthropometric Burden
 
----
+**Alert triggers:**
+- Elevated urine glucose / blood sugar → FPG, HbA1c
+- Low insulin secretion / suspected IR → Fasting insulin, HOMA-IR
+- Elevated triglycerides → Fasting lipid panel
+- Elevated BMI + waist → lifestyle review, body composition context
 
-## QA
+**Food-first:** Reduce refined carbs, increase legumes/oats/fiber, add fish/olive oil/nuts, emphasize sleep and meal timing  
 
-Run the three dashboard skill files before any release:
-```
-.claude\skills\operator\QRMA_SKILL_dashboard_operator.md
-.claude\skills\tester\QRMA_SKILL_dashboard_tester.md
-.claude\skills\reviewer\QRMA_SKILL_dashboard_reviewer.md
-```
-
-Last QA run: 2026-05-28 — APPROVED (run_ridwan_20260528)
+**Developer note:** Architect this module so QRMA inputs can later coexist with real lab values. Real lab values should always take precedence over QRMA estimates when present.
 
 ---
 
-## Working Rules for Claude Code
+### Module 5 — Cardio-Renal Strain
+**Confidence:** Needs lab confirmation  
+**Score direction:** Risk (higher = more concern)  
 
-- Use `str_replace` for targeted edits. Never rewrite the full HTML.
-- Versioning: next versions are `qrma-dashboard-v4.html`, `csv_exporter_v3.py`, `parser_v4.py`.
-- `database.py` has no version suffix — shared with another dev, do not rename.
-- Full architecture history: `HANDOVER.md`
-- Changelog: `90_Pipeline_Reports\CHANGELOG.md`
+**Inputs:** Cholesterol plaque/crystal signal, Vascular flexibility, Left ventricular ejection resistance, Uric acid, Proteinuria index, Potassium, Magnesium  
+
+**Two sub-scores:**
+- Cardiac / Vascular Strain Index
+- Renal Strain Index
+
+**Alert triggers:**
+- Cholesterol plaque elevated → Fasting lipid panel, ApoB, optional Lp(a)
+- Low vascular flexibility → BP monitoring (ABPM), ABI, clinical cardiovascular evaluation
+- Proteinuria elevated → Urinalysis, uACR, serum creatinine, eGFR
+- High uric acid → Serum uric acid
+- Low K or Mg → Serum electrolytes, medication/diet review
+
+**Food-first:** Reduce sodium, improve Mg/K-rich foods (where safe), hydration, reduce ultra-processed foods  
+
+**Developer note:** Always separate renal prompts from cardiac prompts in the action plan even when the combined score is shown together.
+
+---
+
+### Module 6 — Nutrient Sufficiency
+**Confidence:** Exploratory  
+**Score direction:** Resilience (higher = better reserve)  
+
+**Inputs (10 nutrients):** Zinc, Magnesium, Potassium, Iodine, Silicon, Vitamin B6, Vitamin C, Vitamin D3, Vitamin E, Folate  
+
+**Key outputs:**
+- Overall Nutrient Sufficiency Score
+- Deficient count (below 75% of reference minimum)
+- Optimal count (at or above reference minimum)
+- Per-nutrient status chips: normal / borderline / deficient
+
+**Alert triggers:**
+- Low Vitamin D3 → 25-OH Vitamin D
+- Low Folate or B6 → Standard nutritional labs if clinically needed
+- Low Zinc or Magnesium → Dietary review first, then lab confirmation
+
+**Food-first per nutrient:**
+- Zinc: pumpkin seeds, shellfish, beef, legumes
+- Magnesium: leafy greens, cocoa, nuts, seeds
+- Potassium: fruit, potatoes, beans
+- Iodine: seafood, dairy, eggs, iodized salt
+- Folate: legumes, leafy greens, citrus
+- Vitamin D3: fatty fish, eggs, fortified foods + sun exposure
+
+**Developer note:** Do not overstate precision of QRMA-derived nutrient values. This module is for prioritizing dietary discussion and selective confirmatory testing only.
+
+---
+
+### Module 7 — Skin & Collagen Resilience
+**Confidence:** Exploratory  
+**Score direction:** Resilience (higher = better)  
+
+**Inputs:** Skin Collagen, Skin Elasticity, Transepidermal Water Loss (TEWL), Sebum, Melanin, Sensitivity, Eye Collagen, Joint/Systemic Collagen  
+
+**Two sub-scores:**
+- Collagen Index
+- Barrier / Skin-Function Index
+
+**Alert triggers:**
+- Low collagen pattern → Dietary protein adequacy, Vitamin C cofactors
+- High TEWL → Hydration review, skin-barrier support
+- Low elasticity → Recovery, sleep, protein, micronutrient review
+
+**Food-first:** Adequate protein, Vitamin C-rich foods, bone broth / gelatin (where culturally appropriate), sulfur-rich foods (garlic, eggs), Omega-3 for skin barrier  
+
+**Developer note:** This module should feel visually lighter and less clinical than cardio-renal or metabolic sections. It is an engagement feature and must not dominate the medical seriousness of the dashboard.
+
+---
+
+### Module 8 — Action Plan
+**Confidence:** Aggregated — inherits confidence levels from contributing modules  
+
+**Three output blocks (always in this order):**
+1. Recommended confirmatory tests table (ranked High / Medium / Low)
+2. Priority food-first actions (per domain)
+3. High-priority active alerts
+
+**Deduplication rules:**
+- If multiple modules point to metabolic strain, collapse into one combined recommendation
+- If a toxin flag is present, prioritize confirmatory testing before lifestyle speculation
+- If a renal flag is present, kidney safety labs appear prominently at the top
+- If no major flags, show a calm "routine monitoring" message
+
+**Confirmatory test library (reference for scoring engine):**
+
+| Pattern | Suggested tests |
+|---|---|
+| Glycemic risk | FPG, HbA1c, Fasting insulin |
+| Lipid risk | Fasting lipid panel, ApoB, optional Lp(a) |
+| Kidney strain | Urinalysis, uACR, serum creatinine, eGFR |
+| Electrolyte concerns | Serum electrolytes, magnesium |
+| Lead flag | Whole blood lead level |
+| Mercury flag | Blood mercury, urine mercury speciation |
+| Cadmium flag | Urine cadmium |
+| Arsenic flag | Urine arsenic, speciated |
+| Vitamin D pattern | 25-OH Vitamin D |
+| General nutrient review | Selective micronutrient labs per strongest deficits |
+
+---
+
+## Scoring Conventions
+
+| Convention | Rule |
+|---|---|
+| Scale | 0–100 normalized for all modules |
+| Risk modules | Higher score = higher burden (Oxidative, Toxic, Metabolic, Cardio-Renal) |
+| Resilience modules | Higher score = better reserve (Nutrient, Skin) |
+| Threshold language | 0–30 = Low Concern · 31–60 = Monitor · 61–100 = Needs Lab Confirmation |
+| Chart labels | Must explicitly state whether higher is better or worse |
+| Clinical validity | Never imply scores are clinically validated — they are screening heuristics |
+
+---
+
+## Alert Language Standards
+
+### Approved phrases
+- "Pattern suggests…"
+- "Screening flag…"
+- "Consider confirming with…"
+- "Monitor trend…"
+- "Below reference range pattern…"
+- "Higher-than-reference pattern…"
+- "Low concern"
+- "Biologically older than expected for age"
+
+### Forbidden phrases
+- "You have…"
+- "This means disease…"
+- "42% risk of…"
+- "Poisoning"
+- "Heart attack chance"
+- "Kidney failure risk" (unless from a validated external calculator, clearly separated from QRMA)
+- "Detox"
+- "Confirmed body burden"
+- "Toxic syndrome"
+
+---
+
+## UI / UX Rules
+
+1. App must feel **credible and calm**, not alarming or dramatic.
+2. **Sticky top bar** with disclaimer: "For Reference Only · Not a Diagnosis"
+3. **Left sidebar navigation** for desktop; bottom navigation for mobile.
+4. **Input-first workflow** — user enters values in each module, then clicks Calculate.
+5. Every module page shows: total score + label, sub-scores, per-input status chips, food suggestions, confirmatory tests.
+6. **Dashboard overview** shows KPI cards for all 8 domains + radar chart + bar chart.
+7. Confidence badges must be visible on every module page AND on the dashboard summary.
+8. Do not place exploratory modules visually above well-supported modules.
+9. Charts must distinguish risk scores from resilience scores in their labels.
+10. Every input field must show: current value, unit/scale, and a reference range hint.
+11. Support decimal values on all numeric inputs.
+12. Default values must produce a meaningful, non-trivial demo result on first run.
+
+---
+
+## Design Tokens (CSS Custom Properties)
+
+The following token names are already established and must be preserved:
+
+```
+Colors:     --pri, --priH, --priHi
+            --ok, --okHi
+            --warn, --warnHi
+            --err, --errHi
+            --gold, --goldHi
+            --blue, --blueHi
+            --purp, --purpHi
+
+Surface:    --bg, --surf, --surf2, --sOff, --sOff2
+            --div, --brd
+
+Text:       --txt, --txtM, --txtF
+
+Radius:     --rsm, --rmd, --rlg, --rxl, --rfull
+
+Spacing:    --sp1 through --sp16
+
+Typography: --text-xs, --text-sm, --text-base, --text-lg, --text-xl
+            --fD (Cabinet Grotesk), --fB (Satoshi)
+
+Shadow:     --shsm, --shmd, --shlg
+Transition: --tr
+```
+
+Both light and dark themes are defined. Theme toggle is via `data-theme="dark"` on `<html>`.
+
+---
+
+## Source Data Context
+
+The primary reference patient is **Ridwan, 40-year-old male**. The source QRMA report is 95 pages and covers: blood sugar, minerals, vitamins, coenzymes, toxins, heavy metals, skin, collagen, kidney function, blood lipids, and body composition.
+
+The report itself states all values are for reference only and not for diagnosis. This disclaimer must be reflected in all app language.
+
+---
+
+## Engineering Priorities
+
+Work in this order when making changes:
+
+1. **Stabilize scoring architecture** — move all thresholds and weights into one config object; separate input definitions, scoring rules, and rendering logic.
+2. **Formalize module metadata** — single source of truth per module for title, confidence, inputs, thresholds, score direction, food actions, confirmatory tests.
+3. **Prepare for report ingestion** — design a parser/mapping layer so future versions can auto-populate fields from a parsed QRMA PDF or CSV.
+4. **Dual-view output** — future toggle between Consumer view (simplified) and Clinician view (expanded sub-scores, raw values, reference ranges).
+
+---
+
+## QA Checklist (run before every release)
+
+- [ ] All 8 modules calculate independently without errors
+- [ ] Dashboard summary updates when any module score changes
+- [ ] Confidence badges display correctly on all module pages
+- [ ] No output contains diagnostic claims
+- [ ] Every flagged result has at least one food-first suggestion or confirmatory test prompt
+- [ ] Charts do not invert score direction (risk vs resilience labels are correct)
+- [ ] Mobile navigation exposes all 8 modules
+- [ ] Default values produce a meaningful, non-trivial first-run demo state
+- [ ] Light and dark themes both render without broken colors
+- [ ] No external dependencies beyond CDN links already declared in `<head>`
+
+---
+
+## Future Refactor Path
+
+If the project outgrows a single file, split in this order:
+
+```
+/modules
+  biological-age.js
+  oxidative.js
+  toxic.js
+  metabolic.js
+  cardio-renal.js
+  nutrient.js
+  skin.js
+  action-plan.js
+
+/core
+  thresholds.js
+  severity.js
+  score-utils.js
+  mappings.js
+
+/ui
+  cards.js
+  charts.js
+  forms.js
+  alerts.js
+```
+
+Even while the app remains a single HTML file, internal code organization should mirror this structure.
+
+---
+
+## HRV Integration Rules
+
+These rules govern all HRV-related work across all future builds. They are non-negotiable and must be preserved alongside the product rules above.
+
+### Architectural Rules
+
+1. **HRV is its own domain.** It has its own vocabulary, rules, and systemization. Never collapse HRV into QRMA zone language (`normal/ringan/sedang/berat`).
+2. **HRV never alters QRMA scores.** The 7 module calculators (`cBioAge`, `cOx`, `cTx`, `cMt`, `cCr`, `cNt`, `cSk`) must never read from `hrvState`. HRV is additive only.
+3. **HRV renders independently.** It does not gate on QRMA alerts. It displays its own findings based purely on its own data and its own rules.
+4. **Missing HRV must never break anything.** If `hrvState` is null, the dashboard behaves exactly as it does without HRV. Option A empty state: neutral strip reading *"No HRV data for this session."*
+5. **HRV logic lives in `hrv-engine.js`.** All ALI computation, band classification, protocol selection, and corroboration rules are in this separate module file. Never inline HRV logic into the main HTML script block.
+
+### ALI Vocabulary (do not translate to QRMA zone words)
+
+| Band | RMSSD Range | Meaning |
+|---|---|---|
+| Very Low | < 20 ms | Severe vagal withdrawal |
+| Low | 20–40 ms | Suboptimal vagal tone |
+| Adaptive | 40–70 ms | Reasonable autonomic flexibility |
+| High | > 70 ms | Strong parasympathetic tone |
+
+### Display Rules
+
+1. **HRV Sidebar Module** — dedicated section with: Autonomic Status Card (RMSSD / ALI / HR / Quality), ALI-gated micro-protocol stack (show only current ALI protocols, never show deferred ones), Reading Provenance block, and compliance disclaimer.
+2. **Per-module top panel** — a 2-line strip at the top of each of the 7 module pages: Line 1 = vitals (RMSSD · ALI band · HR · Quality). Line 2 = one module-specific context sentence. No micro-protocols here — those live in the HRV sidebar module only.
+3. **Micro-protocol display is ALI-gated:** Very Low → V1, V3, V4 only. Low → V1, V2, V3, V4. Adaptive → V1, V2, V3, V4, V5. High → V2, V4, V5. Never show deferred protocols or "coming soon" language.
+4. **HRV uses its own CSS color classes** — separate from `zone-normal/ringan/sedang/berat`. Color translation happens only at render time.
+
+### Data Contract
+
+`hrvState` is a session-only in-memory object (no database, no localStorage for Phase 1). Fields:
+
+```javascript
+{
+  // Provenance
+  readingTimestamp, device, protocol,
+  // Quality gate (3 fields — not one boolean)
+  durationSec, artifactPct, qualityFlag,  // qualityFlag: pass|caution|reject
+  // Raw metrics
+  meanHr, rmssd, sdnn, lnRmssd, lfHfRatio,
+  // Derived (computed by hrv-engine.js)
+  rmssdBand, baselineStatus, autonomicLoadIndex, recoveryState, readinessBand
+}
+```
+
+### Compliance
+
+All HRV output uses screening/wellness language only. Approved phrases mirror the QRMA alert language standards. Forbidden: any diagnostic claim, any statement that HRV confirms a disease, any implication that ALI is a validated clinical index.
+
+---
+
+## Final Instruction
+
+Do not start by redesigning colors or charts. Start by preserving the product philosophy, then verify all eight modules follow the same contract:
+
+1. Clear inputs with reference ranges
+2. Transparent score intent and direction
+3. Confidence label visible
+4. Non-diagnostic wording throughout
+5. Food-first advice
+6. Confirmatory test recommendations
+7. Dashboard summary output
+
+The next best contribution is always **cleaner module architecture, better source-to-input mapping, and safer clinical wording** — not more features.
