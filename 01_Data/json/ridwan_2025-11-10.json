@@ -136,9 +136,9 @@
   "meta": {
     "source": "qrma-parser-v3",
     "version": "3.0",
-    "generated_at": "2026-05-28T15:38:48.553555",
+    "generated_at": "2026-05-30T15:50:51.857578",
     "csv_source": "ridwan_2025-11-10.csv",
-    "run_id": "run_ridwan_20260528_1538",
+    "run_id": "run_ridwan_20260530_1550",
     "row_count": 1
   },
   "warnings": [

@@ -1,3 +1,4 @@
+<!-- qrma-dashboard-v4.html -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -185,6 +186,20 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
 .cc-name{font-weight:700;font-size:var(--text-lg);color:var(--txt);font-family:var(--fD);}
 .cc-meta{display:flex;flex-wrap:wrap;gap:var(--sp3);margin-top:var(--sp1);}
 .cc-chip{font-size:var(--text-xs);color:var(--txtM);display:flex;align-items:center;gap:4px;}
+/* ---------- PDF Drop Zone Modal ---------- */
+.pdz-ov{position:fixed;inset:0;background:oklch(0 0 0/.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:var(--sp4);backdrop-filter:blur(2px);}
+.pdz-card{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rxl);padding:var(--sp8);max-width:460px;width:100%;box-shadow:var(--shlg);display:flex;flex-direction:column;gap:var(--sp5);animation:imIn .22s cubic-bezier(.16,1,.3,1);}
+.pdz-zone{border:2px dashed var(--brd);border-radius:var(--rlg);padding:var(--sp8) var(--sp6);text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:var(--sp2);transition:border-color var(--tr),background var(--tr);}
+.pdz-zone:hover,.pdz-zone.over{border-color:var(--pri);background:var(--priHi);}
+.pdz-zone.uploading{border-color:var(--pri);background:var(--priHi);pointer-events:none;cursor:default;}
+.pdz-lbl{font-size:var(--text-sm);color:var(--txt);}
+.pdz-sub{font-size:var(--text-xs);color:var(--txtM);}
+.pdz-spin{width:32px;height:32px;border:3px solid var(--brd);border-top-color:var(--pri);border-radius:50%;animation:pdzspin .7s linear infinite;}
+@keyframes pdzspin{to{transform:rotate(360deg)}}
+.pdz-err{background:var(--errHi);border-radius:var(--rlg);padding:var(--sp3) var(--sp4);color:var(--err);font-size:var(--text-sm);}
+.pdz-srv{font-size:var(--text-xs);text-align:center;color:var(--txtM);}
+.pdz-srv.ok{color:var(--ok);}
+.pdz-srv.warn{color:var(--warn);}
 </style>
   <script src="03_Scripts/zone-scoring.js"></script>
   <script src="03_Scripts/importer.js"></script>
@@ -220,6 +235,10 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
     <input type="file" id="csv-file-input" accept=".csv" style="display:none" aria-label="Import CSV file">
     <button class="btn btns" onclick="document.getElementById('csv-file-input').click()" style="padding:var(--sp2) var(--sp4);font-size:var(--text-xs);" aria-label="Import CSV report">
       <i data-lucide="upload" width="14" height="14"></i> Import CSV
+    </button>
+    <input type="file" id="pdf-file-input" accept=".pdf" style="display:none" aria-label="Import PDF file">
+    <button class="btn btns" onclick="openPdfModal()" style="padding:var(--sp2) var(--sp4);font-size:var(--text-xs);" aria-label="Import PDF report via server">
+      <i data-lucide="scan-line" width="14" height="14"></i> Import PDF
     </button>
     <button class="btic lang-btn" data-lang aria-label="Switch language">ID</button>
     <button class="btic" data-tt aria-label="Switch theme">
@@ -558,6 +577,27 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
     </div>
   </div>
 </div>
+<!-- PDF Upload Modal -->
+<div id="pdf-modal" class="pdz-ov" style="display:none" role="dialog" aria-modal="true" aria-labelledby="pdz-heading">
+  <div class="pdz-card">
+    <div class="im-title">
+      <i data-lucide="scan-line" width="22" height="22" style="color:var(--pri)"></i>
+      <span id="pdz-heading">Import PDF Report</span>
+    </div>
+    <div id="pdz-srv" class="pdz-srv">Checking server…</div>
+    <div id="pdz-zone" class="pdz-zone" role="button" tabindex="0" aria-label="Drop PDF here or click to browse">
+      <i id="pdz-icon" data-lucide="upload-cloud" width="40" height="40" style="color:var(--pri)"></i>
+      <div id="pdz-spin" class="pdz-spin" style="display:none"></div>
+      <div id="pdz-lbl" class="pdz-lbl"><strong>Drop a QRMA PDF here</strong></div>
+      <div id="pdz-sub" class="pdz-sub">or click to browse &middot; PDF files only</div>
+    </div>
+    <div id="pdz-err" class="pdz-err" style="display:none"></div>
+    <p style="font-size:var(--text-xs);color:var(--txtM)">Requires the local server (<code style="background:var(--sOff);padding:1px 4px;border-radius:var(--rsm)">server.py</code>) running on port&nbsp;5000. If unavailable, close this and use the JSON file picker instead.</p>
+    <div class="im-btns">
+      <button class="btn btns" onclick="closePdfModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 <script>
 (function(){const t=document.querySelector('[data-tt]'),r=document.documentElement;let d=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';r.setAttribute('data-theme',d);t&&t.addEventListener('click',()=>{d=d==='dark'?'light':'dark';r.setAttribute('data-theme',d);t.innerHTML=d==='dark'?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>':'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';});})();
 function nav(id){document.querySelectorAll('.pg').forEach(s=>s.classList.remove('active'));document.querySelectorAll('[data-nav],[data-mn]').forEach(s=>s.classList.remove('active'));document.getElementById('pg-'+id).classList.add('active');document.querySelectorAll('[data-nav="'+id+'"],[data-mn="'+id+'"]').forEach(e=>e.classList.add('active'));window.scrollTo({top:0,behavior:'smooth'});}
@@ -837,6 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   initImportCSV();
+  initPdfDrop();
 });
 
 // ---------- CSV IMPORT ----------
@@ -991,6 +1032,135 @@ function confirmImport(){
 function closeImportModal(){
   document.getElementById('import-overlay').style.display='none';
   _importData=null;
+}
+
+// ---------- PDF UPLOAD (Build 1) ----------
+const PDF_SERVER='http://localhost:5000';
+
+function openPdfModal(){
+  document.getElementById('pdf-modal').style.display='flex';
+  lucide.createIcons();
+  _pdfReset();
+  _checkServer();
+}
+
+function closePdfModal(){
+  document.getElementById('pdf-modal').style.display='none';
+  _pdfReset();
+}
+
+function _pdfReset(){
+  document.getElementById('pdz-zone').classList.remove('over','uploading');
+  document.getElementById('pdz-spin').style.display='none';
+  document.getElementById('pdz-icon').style.display='';
+  document.getElementById('pdz-lbl').innerHTML='<strong>Drop a QRMA PDF here</strong>';
+  document.getElementById('pdz-sub').textContent='or click to browse · PDF files only';
+  const e=document.getElementById('pdz-err');
+  e.style.display='none';
+  e.textContent='';
+}
+
+function _pdfSetLoading(on){
+  const zone=document.getElementById('pdz-zone');
+  const spin=document.getElementById('pdz-spin');
+  const icon=document.getElementById('pdz-icon');
+  const lbl =document.getElementById('pdz-lbl');
+  const sub =document.getElementById('pdz-sub');
+  if(on){
+    zone.classList.add('uploading');
+    spin.style.display='block';
+    icon.style.display='none';
+    lbl.innerHTML='<strong>Processing PDF…</strong>';
+    sub.textContent='Running pipeline — please wait.';
+  }else{
+    zone.classList.remove('uploading');
+    spin.style.display='none';
+    icon.style.display='';
+    lbl.innerHTML='<strong>Drop a QRMA PDF here</strong>';
+    sub.textContent='or click to browse · PDF files only';
+  }
+}
+
+function _pdfShowErr(msg){
+  _pdfSetLoading(false);
+  const e=document.getElementById('pdz-err');
+  e.style.display='block';
+  e.textContent=msg;
+}
+
+function _checkServer(){
+  const el=document.getElementById('pdz-srv');
+  el.className='pdz-srv';
+  el.textContent='Checking server…';
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),2500);
+  fetch(PDF_SERVER+'/',{signal:ctrl.signal})
+    .then(r=>{
+      clearTimeout(timer);
+      if(r.ok){
+        el.className='pdz-srv ok';
+        el.textContent='● Server connected — ready to process PDF';
+      }else{
+        el.className='pdz-srv warn';
+        el.textContent='○ Server error ('+r.status+') — use JSON file picker if needed';
+      }
+    })
+    .catch(()=>{
+      clearTimeout(timer);
+      el.className='pdz-srv warn';
+      el.textContent='○ Server not running on port 5000 — start server.py first';
+    });
+}
+
+function handlePdfUpload(file){
+  if(!file||!file.name.toLowerCase().endsWith('.pdf')){
+    _pdfShowErr('Please select a valid PDF file.');
+    return;
+  }
+  _pdfReset();
+  _pdfSetLoading(true);
+  const fd=new FormData();
+  fd.append('pdf',file);
+  fetch(PDF_SERVER+'/upload',{method:'POST',body:fd})
+    .then(resp=>resp.json().then(json=>({ok:resp.ok,json})))
+    .then(({ok,json})=>{
+      if(!ok){
+        _pdfShowErr('Server error: '+(json.error||'Unknown error'));
+        return;
+      }
+      // Mirror the JSON import path in confirmImport(): zoneData first, then importer
+      window.zoneData={};
+      Object.entries(json.values||{}).forEach(([k,v])=>{
+        if(k.endsWith('_zone')&&v&&v!=='unknown') window.zoneData[k]=v;
+      });
+      closePdfModal();
+      QRMAImporter.importFromPayload(json,[]);
+    })
+    .catch(err=>{
+      _pdfShowErr('Could not reach server. Is server.py running? '+err.message);
+    });
+}
+
+function initPdfDrop(){
+  const fi  =document.getElementById('pdf-file-input');
+  const zone=document.getElementById('pdz-zone');
+  fi.addEventListener('change',e=>{
+    if(e.target.files[0]) handlePdfUpload(e.target.files[0]);
+    fi.value='';
+  });
+  zone.addEventListener('click',()=>fi.click());
+  zone.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ') fi.click();});
+  zone.addEventListener('dragover',e=>{
+    e.preventDefault();
+    if(!zone.classList.contains('uploading')) zone.classList.add('over');
+  });
+  zone.addEventListener('dragleave',()=>zone.classList.remove('over'));
+  zone.addEventListener('drop',e=>{
+    e.preventDefault();
+    zone.classList.remove('over');
+    const f=e.dataTransfer&&e.dataTransfer.files[0];
+    if(f) handlePdfUpload(f);
+  });
 }
 </script>
 </body>
