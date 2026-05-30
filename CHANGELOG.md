@@ -2,6 +2,68 @@
 
 ---
 
+## 2026-05-30 — Build 1 Complete: Flask Microserver + v4 Dashboard
+
+### Status: SHIPPED ✓
+
+### What Was Built
+- `03_Scripts/server.py` — Flask microserver, port 5000
+- `qrma-dashboard-v4.html` — v3 base + PDF drop zone + Flask integration
+
+### server.py — Implementation Details
+- Path setup via `__file__` self-location (same pattern as `csv_exporter_v2.py`)
+- Routes: `GET /` health check, `POST /upload` multipart PDF
+- Pipeline: `parse_qrma_pdf()` → `export_dashboard_csv()` → `csv_to_json_payload()` → returns JSON
+- CSV always written to `01_Data/csv/` as permanent audit trail — never bypassed
+- Temp PDF deleted after processing (`finally` block)
+- CORS enabled (localhost-only server)
+- 50 MB upload limit
+- Flask-CORS dependency added (`pip install flask-cors`)
+
+### qrma-dashboard-v4.html — What Changed from v3
+- 170 lines added, zero v3 lines removed or modified
+- PDF drop zone modal (drag-and-drop + click to browse)
+- "Import PDF" button in topbar between Import CSV and lang toggle
+- Loading spinner during upload
+- Server connection status indicator (green/amber)
+- On success: JSON passed directly to `QRMAImporter.importFromPayload()`
+- On server unreachable: amber warning, drop zone still shown, no JS errors
+- On pipeline error: red error block inside modal, modal stays open for retry
+- Full v3 fallback (JSON file picker) intact
+
+### Test Results
+- 3 patients tested via PDF drop path: all passing
+- Zero console errors
+- Audit trail confirmed: CSV + JSON written for all 3 patients
+- Server offline fallback confirmed working
+- Fields: 62 | Zones: 64 (matches v3 QA baseline)
+
+### Dependencies Added
+```
+flask==3.1.3      (already installed)
+flask-cors        (new — pip install flask-cors)
+```
+
+### Operator Workflow (post Build 1)
+```
+Terminal (once per session):
+  python 03_Scripts\server.py
+
+Browser (every client):
+  Open qrma-dashboard-v4.html
+  Click "Import PDF" → drop PDF → dashboard loads automatically
+```
+
+### Files Created
+- `03_Scripts/server.py`
+- `qrma-dashboard-v4.html`
+
+### Next: Build 2 — HRV Phase 1
+- `03_Scripts/hrv-engine.js`
+- `qrma-dashboard-v4.html` updated with HRV sidebar module + per-module panels
+
+---
+
 ## 2026-05-30 — Architecture & Design Session: HRV Integration + Flask Microserver
 
 ### Session Type
@@ -43,26 +105,9 @@ Design decisions and architecture planning. No code written. Baseline for Build 
 
 #### Build Sequence Confirmed
 ```
-Build 1 — server.py + qrma-dashboard-v4.html
-  Flask microserver: PDF drop → pipeline runs → dashboard auto-loads
-
-Build 2 — hrv-engine.js + qrma-dashboard-v4.html HRV layer
-  HRV sidebar module + manual input form
-  2-line top panel on each of 7 modules
-  ALI-gated micro-protocol stack
+Build 1 — server.py + qrma-dashboard-v4.html        ← COMPLETE
+Build 2 — hrv-engine.js + qrma-dashboard-v4.html    ← NEXT
 ```
-
-### Files Updated
-- `CLAUDE.md` — version target updated to v4, Rule 7 amended for Flask, HRV Integration Rules section added.
-- `CHANGELOG.md` — this entry.
-
-### Files to Create (Build 1)
-- `03_Scripts/server.py` — Flask microserver
-- `qrma-dashboard-v4.html` — PDF drop zone + Flask integration (v3 as base)
-
-### Files to Create (Build 2)
-- `03_Scripts/hrv-engine.js` — HRV logic module
-- `qrma-dashboard-v4.html` — HRV sidebar module + per-module panels (Build 1 as base)
 
 ### Still Deferred
 - buildAction() zone gates
