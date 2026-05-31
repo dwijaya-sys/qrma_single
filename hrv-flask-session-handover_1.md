@@ -279,3 +279,29 @@ New from today (post-Phase 1):
 | `hrv-integration-next-ai-handover.md` | Data contracts, adapter architecture, session payload schema |
 
 Read the design document first for clinical context. Logic layer handover for engine architecture. Next-AI handover for the full data contract spec.
+
+---
+
+## Bug Fixes Applied Post-Build 1 (2026-05-30)
+
+### FIX 1 — Frans patient name in hint text (qrma-dashboard-v4.html)
+17 `.irg` hint divs had `| Frans: X.XX (high/low)` hardcoded from QA session.
+Stripped from all 17 fields. Hint text now shows `Normal: X` only.
+
+### FIX 2 — Nutrient field ranges, scale labels, step precision (qrma-dashboard-v4.html)
+All 10 nutrient input fields had wrong ranges (written for a 0–10 scale).
+Corrected to PDF Referensi Standar values. `(0-10)` labels removed. `step` set to `0.001`.
+Default `value=` updated to midpoint of correct normal range.
+
+### FIX 3 — mappings.json normal_range for 9 nutrient entries
+Root cause: empty `normal_range` → parser couldn't derive zones → `unknown` → `—` badge.
+All 9 entries now have correct ranges. Zero unknown zones on re-run.
+Potassium (nt-k) confirmed `ringan` for Ridwan — genuine finding (0.637 < 0.689 floor).
+
+### Known Issue (not fixed)
+`parser_v3.py` line 917: UnicodeEncodeError on Windows cp1252 when printing warnings
+containing `α`. CSV output unaffected. Cosmetic terminal issue only. Deferred.
+
+### Pipeline Note
+Kamiyanti and Frans CSVs/JSONs in `01_Data/` are stale for nutrient fields after FIX 3.
+Re-run pipeline on both PDFs before next QA session.

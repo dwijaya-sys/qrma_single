@@ -2,6 +2,76 @@
 
 ---
 
+## 2026-05-30 — Bug Fixes: Nutrient Fields + Input Hints
+
+### Fixes Applied to qrma-dashboard-v4.html + mappings.json
+
+#### FIX 1 — Removed hardcoded patient name from input hint text
+- 17 `.irg` hint divs in the basic input section contained `| Frans: X.XX (high/low)`
+- These were hardcoded from a previous QA session and never cleared
+- Stripped from all 17 fields — hint text now shows `Normal: X` only
+- Affected fields: bv, cp, art, ins, bs, fr, ph, pb, hg, ce, cs, cj, coq, gsh, vc, ve, ost
+
+#### FIX 2 — Corrected nutrient field normal ranges, scale labels, and step precision
+- All 10 nutrient input fields had wrong `Normal:` ranges (written for a 0–10 scale)
+- Actual PDF values are on a much smaller raw bioresonance scale (0–8 approx)
+- Ranges corrected from PDF Referensi Standar (verified from QRMA_Ridwan_November_21.md):
+
+| Field | Wrong range | Correct range |
+|---|---|---|
+| Zinc | 5.0-8.0 | 1.143-1.989 |
+| Magnesium | 5.0-7.5 | 0.568-0.992 |
+| Potassium | 4.5-7.0 | 0.689-0.987 |
+| Iodine | 5.0-8.0 | 1.421-5.490 |
+| Silicon | 5.0-8.0 | 1.425-5.872 |
+| Vitamin B6 | 5.0-8.0 | 0.824-1.942 |
+| Vitamin C | 4.5-6.5 | 4.543-5.023 |
+| Vitamin D3 | 5.0-8.0 | 5.327-7.109 |
+| Vitamin E | 5.0-7.0 | 4.826-6.013 |
+| Folate | 5.0-8.0 | 1.449-2.246 |
+
+- `(0-10)` scale label removed from all 10 nutrient field labels
+- `step` corrected to `0.001` for all 10 fields (values have 3 decimal places)
+- Default `value=` attributes updated to midpoint of correct normal range
+
+#### FIX 3 — Fixed mappings.json normal_range for 9 nutrient entries
+- Root cause of `—` (unknown) zone badges in nutrient module
+- `normal_range` was empty string for 9 out of 10 nutrient fields
+- Parser uses `normal_range` to derive zones — empty range = `unknown` zone = `—` badge
+- All 9 entries now populated with correct ranges from PDF
+
+**Pipeline verification (Ridwan 2025-11-10):**
+
+| Field | Value | Zone |
+|---|---|---|
+| nt-zn | 1.888 | normal |
+| nt-mg | 0.932 | normal |
+| nt-k | 0.637 | ringan ← genuine finding |
+| nt-io | 2.794 | normal |
+| nt-si | 3.609 | normal |
+| nt-b6 | 0.895 | normal |
+| nt-vc | 5.013 | normal |
+| nt-d3 | 6.046 | normal |
+| nt-ve | 4.907 | normal |
+| nt-fo | 1.600 | normal |
+
+Zero unknown zones. nt-k ringan is a genuine finding (0.637 below 0.689 floor).
+
+### Known issue logged (not fixed here)
+- `parser_v3.py` line 917: UnicodeEncodeError on Windows cp1252 terminal when printing
+  warnings containing `α` character. CSV output is unaffected — cosmetic terminal only.
+  Fix deferred.
+
+### Pipeline note
+- Kamiyanti and Frans CSVs/JSONs in `01_Data/` are stale for nutrient fields.
+  Re-run pipeline on both PDFs to get correct nutrient zones.
+
+### Files Modified
+- `qrma-dashboard-v4.html` — FIX 1 + FIX 2
+- `03_Scripts/mappings.json` — FIX 3
+
+---
+
 ## 2026-05-30 — Build 1 Complete: Flask Microserver + v4 Dashboard
 
 ### Status: SHIPPED ✓
@@ -116,6 +186,7 @@ Build 2 — hrv-engine.js + qrma-dashboard-v4.html    ← NEXT
 - Parameter name translation (ID/EN display labels)
 - Manual input form for mt-bmi and mt-wc
 - PyWebView wrapper (Option C desktop packaging) — after Flask is stable
+- parser_v3.py UnicodeEncodeError on Windows cp1252 (α character in warning strings)
 
 ---
 
