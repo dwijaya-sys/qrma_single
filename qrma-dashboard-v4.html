@@ -666,7 +666,7 @@ function barPillar(label,val,ccls){
   return '<div class="sbw"><div class="sbh"><span class="sbhl">'+label+'</span>'+
     '<span style="display:flex;align-items:center;gap:var(--sp2)">'+
       '<span class="'+ccls+'" style="font-weight:700">'+val.toFixed(1)+'</span>'+
-      '<span style="font-size:var(--text-sm);color:var(--txtM)">'+vl+'</span>'+
+      '<span data-pillar-label data-burden="'+val.toFixed(1)+'" style="font-size:var(--text-sm);color:var(--txtM)">'+vl+'</span>'+
     '</span></div>'+
     '<div class="sbt"><div class="sbf '+fc+'" style="width:'+pct+'%"></div></div>'+
     '<div class="sbl"><span>0</span><span>10</span></div></div>';
@@ -1423,6 +1423,12 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.textContent = lang.toUpperCase();
       document.querySelectorAll('[data-zone]').forEach(el => {
         if (typeof getBadge === 'function') el.textContent = getBadge(el.dataset.zone);
+      });
+      document.querySelectorAll('[data-pillar-label]').forEach(el => {
+        const burden = parseFloat(el.dataset.burden);
+        if (!isNaN(burden) && typeof getPillarLabel === 'function') {
+          el.textContent = getPillarLabel(burden);
+        }
       });
     });
   }
