@@ -419,3 +419,61 @@ renderHrvPanel() called after calcAll() completes.
 - Files modified:
   - `qrma-dashboard-v4.html` — input value="Polar H10"
   - `03_Scripts/hrv-engine.js` — fallback string updated to 'Polar H10'
+
+---
+
+## 2026-06-01 — HRV Visual Layer: ALI Gauge + Autonomic Balance Bar
+
+### Status: SHIPPED ✓
+
+### ALI Gauge (hrv-engine.js v1.0.4 → v1.1.2)
+- Replaced semicircular gauge with straight horizontal bar gauge
+- 4 colored segments: Green (High) · Teal (Adaptive) · Amber (Low) · Red (Very Low)
+- Downward triangle marker at current ALI position
+- Zone labels above bar, scale numbers below (0, 25, 50, 75, 100)
+- ALI number and band label below marker
+- All text uses inline style="fill:var(--txt)" for dark mode compatibility
+- Bilingual zone labels via data-gauge-label + data-gauge-key attributes
+- Language toggle updates gauge labels automatically
+- Bar max-height: 120px
+
+### Autonomic Balance Bar (hrv-engine.js v1.0.8)
+- Separate card below Status Card (Option C)
+- Horizontal bar showing Parasympathetic ↔ Sympathetic balance
+- Left label: "Parasympathetic / Rest & Digest"
+- Right label: "Sympathetic / Alert & Stress"
+- 4 zones: Para Dominant · Balanced · Mixed · Sympathetic Dominant
+- computeBalanceScore() — primary: LF/HF ratio, fallback: RMSSD
+- Balance state label (colored) + interpretation paragraph (bilingual)
+- Data source note: LF/HF or RMSSD fallback with prompt to enter LF/HF
+- All scale numbers use inline style="fill:var(--txt)" for dark mode
+- Bar max-height: 120px (matches ALI gauge)
+
+### Dark Mode Fixes
+- All SVG text elements use inline style="fill:var(--txt)" 
+  instead of CSS class (CSS fill doesn't reliably override 
+  SVG text in all browsers)
+- Covers: zone labels, scale numbers, ALI number, band label,
+  balance score number on both bars
+
+### New Functions Added to hrv-engine.js
+- buildAliGauge(ali, band, lang) → SVG string
+- buildBalanceBar(lfhf, rmssd, lang) → HTML string
+- computeBalanceScore(lfhf, rmssd) → 0–100
+- balanceZone(score) → zone key
+- getBalanceInterpretation(zone, lang) → paragraph string
+- HRV_BALANCE_LABELS constant block
+
+### Version History
+- 1.0.2 → 1.0.3: semicircular gauge added
+- 1.0.3 → 1.0.4: replaced with straight bar gauge
+- 1.0.4 → 1.0.7: sizing iterations
+- 1.0.7 → 1.0.8: balance bar added
+- 1.0.8 → 1.0.9: balance bar sizing fix
+- 1.0.9 → 1.1.0: scale numbers dark mode fix
+- 1.1.0 → 1.1.1: zone label class approach (superseded)
+- 1.1.1 → 1.1.2: zone labels inline style, full dark mode fix
+
+### Files Modified
+- 03_Scripts/hrv-engine.js — v1.1.2
+- qrma-dashboard-v4.html — CSS additions
