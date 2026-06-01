@@ -1246,6 +1246,52 @@ ${HRV_BAND_DESC[band] || 'Autonomic status recorded.'}
     hrv: hrvJson
   }, null, 2);
 
+  // ── Plain-text data summary (TXT export only) ─────────────
+  // Built from the same variables as dataSummaryJson so both
+  // are always in sync. Placeholder %%DATA_SUMMARY_TXT%% in
+  // the report template is swapped for this at download time.
+  const _p  = (s, w) => String(s).padEnd(w);
+  const _mRow = (label, score, status, zone) =>
+    '  ' + _p(label, 17) + ': ' + _p(score + '/100', 8) +
+    _p('(' + status + ')', 16) + 'Zone: ' + zone;
+
+  const dataSummaryTxt = [
+    'PATIENT',
+    '  ' + _p('Name',      12) + ': ' + name,
+    '  ' + _p('Age',       12) + ': ' + (parseInt(age) || age),
+    '  ' + _p('Gender',    12) + ': ' + gender.toLowerCase(),
+    '  ' + _p('Test Date', 12) + ': ' + testDate,
+    '',
+    'SESSION',
+    '  ' + _p('Dashboard', 12) + ': v4',
+    '  ' + _p('Exported',  12) + ': ' + timestamp,
+    '',
+    'MODULE SCORES',
+    _mRow('Biological Age',   baSyntheticScore,    baStatusLabel, zones.ba),
+    _mRow('Oxidative Stress', parseInt(oxScore)||0, oxLabel,       zones.ox),
+    _mRow('Toxic Burden',     parseInt(txScore)||0, txLabel,       zones.tx),
+    _mRow('Metabolic Health', parseInt(mtScore)||0, mtLabel,       zones.mt),
+    _mRow('Cardio-Renal',     parseInt(crScore)||0, crLabel,       zones.cr),
+    _mRow('Nutrient',         parseInt(ntScore)||0, ntLabel,       zones.nt),
+    _mRow('Skin & Collagen',  parseInt(skScore)||0, skLabel,       zones.sk),
+    '',
+    'PRIORITY DOMAINS',
+    ...priorityDomains.map((d, i) => '  ' + (i + 1) + '. ' + d),
+    '',
+    'ACTION PLAN',
+    '  ' + _p('Confirmatory tests recommended', 31) + ': ' + testRows.length,
+    '  ' + _p('High priority alerts',           31) + ': ' + hiAlerts.length,
+    '',
+    'HRV',
+    '  Present : ' + (hrvJson.present ? 'Yes' : 'No'),
+    ...(hrvJson.present ? [
+      '  ' + _p('ALI Band', 10) + ': ' + (hrvJson.ali_band || '--'),
+      '  ' + _p('RMSSD',    10) + ': ' + (hrvJson.rmssd    || '--') + ' ms',
+      '  ' + _p('HR',       10) + ': ' + (hrvJson.mean_hr  || '--') + ' bpm',
+      '  ' + _p('Quality',  10) + ': ' + (hrvJson.quality  || '--')
+    ] : [])
+  ].join('\n');
+
   // ── Assemble report ───────────────────────────────────────
   const report = `═══════════════════════════════════════════════
 
@@ -1314,15 +1360,21 @@ ${hrvSection}
 
 ## Data Summary
 
-\`\`\`json
-${dataSummaryJson}
-\`\`\`
+%%DATA_SUMMARY_TXT%%
 
 ═══════════════════════════════════════════════`;
 
   // ── Download (format-aware) ───────────────────────────────
   const isTxt  = exportFormat === 'txt';
-  const output = isTxt ? mdToTxt(report) : report;
+  // Substitute the placeholder with the right content for each format:
+  // MD  → restore the ```json code fence (unchanged from original behaviour)
+  // TXT → inject the pre-built plain-text summary block
+  const withData = report.replace('%%DATA_SUMMARY_TXT%%',
+    isTxt
+      ? dataSummaryTxt
+      : '```json\n' + dataSummaryJson + '\n```'
+  );
+  const output = isTxt ? mdToTxt(withData) : withData;
   const mime   = isTxt ? 'text/plain;charset=utf-8' : 'text/markdown;charset=utf-8';
   const dlName = isTxt ? filename.replace(/\.md$/, '.txt') : filename;
 

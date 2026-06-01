@@ -2,20 +2,84 @@
 
 ---
 
+## 2026-06-01 — Export Report Feature: MD + TXT Format Toggle
+
+### Status: SHIPPED
+
+### What Was Built
+Added session export feature to `qrma-dashboard-v4.html`.
+Operator can export the full populated dashboard as a structured report
+for use with Gemini, Perplexity, or NotebookLM to build individualized
+8-week health programs alongside TCM diagnosis.
+
+### Export Button
+- Split button group added to topbar (after Import PDF)
+- Main button triggers download in currently selected format
+- Chevron dropdown toggles between MD and TXT
+- Default format: MD
+- Format selection persists for the session
+
+### MD Format (.md)
+- Full structured markdown report
+- Headers, tables, bullet points, JSON code block
+- Suitable for NotebookLM (upload as source file)
+- Filename: {patient}_{date}_usaka_report.md
+
+### TXT Format (.txt)
+- Same content, all markdown symbols stripped
+- No #, **, `, |, asterisks, curly braces, or JSON syntax
+- Suitable for pasting directly into Gemini or Perplexity
+- Filename: {patient}_{date}_usaka_report.txt
+
+### Report Structure (both formats)
+1. Patient header (name, age, gender, test date, export timestamp)
+2. Executive Summary (overall picture, top 3 priority domains, HRV if present)
+3. Module Findings — all 7 modules (score, status, zone, findings bullets)
+4. Action Plan (confirmatory tests table, dietary recommendations, high-priority alerts)
+5. HRV Autonomic Status (omitted if no HRV data loaded)
+6. Context for AI System (primer explaining USAKA/QRMA for the receiving AI)
+7. Data Summary (JSON block in MD, plain labeled text in TXT)
+
+### Data Summary block (TXT format)
+Plain labeled text — no JSON syntax:
+```
+PATIENT         Name, Age, Gender, Test Date
+SESSION         Dashboard version, Export timestamp
+MODULE SCORES   All 7 modules: score/100, label, zone (column-aligned)
+PRIORITY DOMAINS  Top 3 by concern level, numbered
+ACTION PLAN     Confirmatory test count, high-priority alert count
+HRV             Present yes/no, band, RMSSD, HR, quality if present
+```
+
+### Implementation Details
+- `exportSessionReport()` — main export function, reads DOM + JS variables
+- `mdToTxt(markdown)` — line-by-line state machine converter
+- `dataSummaryTxt` — pre-built plain text block from same JS variables as JSON
+- `%%DATA_SUMMARY_TXT%%` placeholder in report template — swapped at download time
+- MD path: placeholder → JSON code fence (unchanged)
+- TXT path: placeholder → plain text block → mdToTxt() strips remaining symbols
+- Guard: alert if no patient imported (cc-name empty or —)
+- No new external dependencies
+- Zero changes to calcAll(), buildAction(), or any existing logic
+
+### Files Modified
+- `qrma-dashboard-v4.html` — export button group + exportSessionReport() + mdToTxt()
+
+---
+
 ## 2026-05-30 — Bug Fixes: Nutrient Fields + Input Hints
 
 ### Fixes Applied to qrma-dashboard-v4.html + mappings.json
 
 #### FIX 1 — Removed hardcoded patient name from input hint text
-- 17 `.irg` hint divs in the basic input section contained `| Frans: X.XX (high/low)`
-- These were hardcoded from a previous QA session and never cleared
-- Stripped from all 17 fields — hint text now shows `Normal: X` only
+- 17 .irg hint divs contained | Frans: X.XX (high/low) hardcoded from QA session
+- Stripped from all 17 fields — hint text now shows Normal: X only
 - Affected fields: bv, cp, art, ins, bs, fr, ph, pb, hg, ce, cs, cj, coq, gsh, vc, ve, ost
 
-#### FIX 2 — Corrected nutrient field normal ranges, scale labels, and step precision
-- All 10 nutrient input fields had wrong `Normal:` ranges (written for a 0–10 scale)
-- Actual PDF values are on a much smaller raw bioresonance scale (0–8 approx)
-- Ranges corrected from PDF Referensi Standar (verified from QRMA_Ridwan_November_21.md):
+#### FIX 2 — Corrected nutrient field normal ranges, scale labels, step precision
+- All 10 nutrient input fields had wrong Normal: ranges (written for a 0-10 scale)
+- Actual PDF values are on raw bioresonance scale (0-8 approx)
+- Ranges corrected from PDF Referensi Standar (verified from QRMA_Ridwan_November_21.md)
 
 | Field | Wrong range | Correct range |
 |---|---|---|
@@ -30,23 +94,22 @@
 | Vitamin E | 5.0-7.0 | 4.826-6.013 |
 | Folate | 5.0-8.0 | 1.449-2.246 |
 
-- `(0-10)` scale label removed from all 10 nutrient field labels
-- `step` corrected to `0.001` for all 10 fields (values have 3 decimal places)
-- Default `value=` attributes updated to midpoint of correct normal range
+- (0-10) scale label removed from all 10 nutrient field labels
+- step corrected to 0.001 for all 10 fields
+- Default value= updated to midpoint of correct normal range
 
 #### FIX 3 — Fixed mappings.json normal_range for 9 nutrient entries
-- Root cause of `—` (unknown) zone badges in nutrient module
-- `normal_range` was empty string for 9 out of 10 nutrient fields
-- Parser uses `normal_range` to derive zones — empty range = `unknown` zone = `—` badge
+- Root cause of unknown zone badges in nutrient module
+- normal_range was empty for 9 out of 10 nutrient fields
 - All 9 entries now populated with correct ranges from PDF
 
-**Pipeline verification (Ridwan 2025-11-10):**
+Pipeline verification (Ridwan 2025-11-10):
 
 | Field | Value | Zone |
 |---|---|---|
 | nt-zn | 1.888 | normal |
 | nt-mg | 0.932 | normal |
-| nt-k | 0.637 | ringan ← genuine finding |
+| nt-k | 0.637 | ringan (genuine finding) |
 | nt-io | 2.794 | normal |
 | nt-si | 3.609 | normal |
 | nt-b6 | 0.895 | normal |
@@ -55,48 +118,47 @@
 | nt-ve | 4.907 | normal |
 | nt-fo | 1.600 | normal |
 
-Zero unknown zones. nt-k ringan is a genuine finding (0.637 below 0.689 floor).
+Zero unknown zones. nt-k ringan is genuine finding (0.637 below 0.689 floor).
 
-### Known issue logged (not fixed here)
-- `parser_v3.py` line 917: UnicodeEncodeError on Windows cp1252 terminal when printing
-  warnings containing `α` character. CSV output is unaffected — cosmetic terminal only.
-  Fix deferred.
+### Known issue logged (not fixed)
+- parser_v3.py line 917: UnicodeEncodeError on Windows cp1252 terminal when printing
+  warnings containing alpha character. CSV output unaffected. Cosmetic only. Deferred.
 
 ### Pipeline note
-- Kamiyanti and Frans CSVs/JSONs in `01_Data/` are stale for nutrient fields.
-  Re-run pipeline on both PDFs to get correct nutrient zones.
+- Kamiyanti and Frans CSVs/JSONs in 01_Data/ are stale for nutrient fields after FIX 3.
+  Re-run pipeline on both PDFs before next QA session.
 
 ### Files Modified
-- `qrma-dashboard-v4.html` — FIX 1 + FIX 2
-- `03_Scripts/mappings.json` — FIX 3
+- qrma-dashboard-v4.html — FIX 1 + FIX 2
+- 03_Scripts/mappings.json — FIX 3
 
 ---
 
 ## 2026-05-30 — Build 1 Complete: Flask Microserver + v4 Dashboard
 
-### Status: SHIPPED ✓
+### Status: SHIPPED
 
 ### What Was Built
-- `03_Scripts/server.py` — Flask microserver, port 5000
-- `qrma-dashboard-v4.html` — v3 base + PDF drop zone + Flask integration
+- 03_Scripts/server.py — Flask microserver, port 5000
+- qrma-dashboard-v4.html — v3 base + PDF drop zone + Flask integration
 
 ### server.py — Implementation Details
-- Path setup via `__file__` self-location (same pattern as `csv_exporter_v2.py`)
-- Routes: `GET /` health check, `POST /upload` multipart PDF
-- Pipeline: `parse_qrma_pdf()` → `export_dashboard_csv()` → `csv_to_json_payload()` → returns JSON
-- CSV always written to `01_Data/csv/` as permanent audit trail — never bypassed
-- Temp PDF deleted after processing (`finally` block)
+- Path setup via __file__ self-location (same pattern as csv_exporter_v2.py)
+- Routes: GET / health check, POST /upload multipart PDF
+- Pipeline: parse_qrma_pdf() → export_dashboard_csv() → csv_to_json_payload() → returns JSON
+- CSV always written to 01_Data/csv/ as permanent audit trail — never bypassed
+- Temp PDF deleted after processing (finally block)
 - CORS enabled (localhost-only server)
 - 50 MB upload limit
-- Flask-CORS dependency added (`pip install flask-cors`)
+- Flask-CORS dependency added (pip install flask-cors)
 
 ### qrma-dashboard-v4.html — What Changed from v3
 - 170 lines added, zero v3 lines removed or modified
 - PDF drop zone modal (drag-and-drop + click to browse)
-- "Import PDF" button in topbar between Import CSV and lang toggle
+- Import PDF button in topbar between Import CSV and lang toggle
 - Loading spinner during upload
 - Server connection status indicator (green/amber)
-- On success: JSON passed directly to `QRMAImporter.importFromPayload()`
+- On success: JSON passed directly to QRMAImporter.importFromPayload()
 - On server unreachable: amber warning, drop zone still shown, no JS errors
 - On pipeline error: red error block inside modal, modal stays open for retry
 - Full v3 fallback (JSON file picker) intact
@@ -121,16 +183,16 @@ Terminal (once per session):
 
 Browser (every client):
   Open qrma-dashboard-v4.html
-  Click "Import PDF" → drop PDF → dashboard loads automatically
+  Click Import PDF → drop PDF → dashboard loads automatically
 ```
 
 ### Files Created
-- `03_Scripts/server.py`
-- `qrma-dashboard-v4.html`
+- 03_Scripts/server.py
+- qrma-dashboard-v4.html
 
 ### Next: Build 2 — HRV Phase 1
-- `03_Scripts/hrv-engine.js`
-- `qrma-dashboard-v4.html` updated with HRV sidebar module + per-module panels
+- 03_Scripts/hrv-engine.js
+- qrma-dashboard-v4.html updated with HRV sidebar module + per-module panels
 
 ---
 
@@ -143,40 +205,33 @@ Design decisions and architecture planning. No code written. Baseline for Build 
 
 #### HRV Integration Architecture
 - HRV is its own domain with its own vocabulary and rules. Never maps to QRMA zone words.
-- ALI (Autonomic Load Index) computed from raw HRV values. Native bands: Very Low / Low / Adaptive / High (0–24 / 25–49 / 50–74 / 75–100). Color translation only at render time.
+- ALI computed from raw HRV values. Native bands: Very Low / Low / Adaptive / High (0-24 / 25-49 / 50-74 / 75-100). Color translation only at render time.
 - HRV never alters any of the 7 QRMA module scores.
 - HRV renders independently — does not gate on QRMA alert state.
 - Missing HRV = Option A empty state. Dashboard behaves exactly as today.
-- HRV logic lives in a dedicated `03_Scripts/hrv-engine.js` module (mirrors `zone-scoring.js` pattern).
+- HRV logic lives in a dedicated 03_Scripts/hrv-engine.js module.
 
 #### HRV Display Design
-- **HRV Sidebar Module** (dedicated page): Autonomic Status Card → ALI-gated Micro-Protocol Stack → Reading Provenance + Disclaimer.
-- **Per-module top panel** (on all 7 modules): 2-line strip — vitals (RMSSD · ALI · HR · Quality) + one module-specific context sentence. No micro-protocols in module panels.
-- **Micro-protocol stack is ALI-gated** (show only current, hide deferred):
-  - Very Low → V1, V3, V4
-  - Low → V1, V2, V3, V4
-  - Adaptive → V1, V2, V3, V4, V5
-  - High → V2, V4, V5
-- Each protocol card shows: name, timing, technique, duration. Plain language. No jargon.
+- HRV Sidebar Module (dedicated page): Autonomic Status Card → ALI-gated Micro-Protocol Stack → Reading Provenance + Disclaimer.
+- Per-module top panel (on all 7 modules): 2-line strip — vitals + one module-specific context sentence. No micro-protocols in module panels.
+- Micro-protocol stack is ALI-gated (show only current, hide deferred):
+  Very Low → V1, V3, V4 | Low → V1, V2, V3, V4 | Adaptive → all 5 | High → V2, V4, V5
 
 #### HRV Data Contract
-- `hrvState` is session-only in-memory (no database, no localStorage in Phase 1).
-- 14 fields: 9 stored (provenance + quality gate + raw metrics) + 5 derived (computed by hrv-engine.js).
-- Quality gate uses 3 distinct fields (`durationSec`, `artifactPct`, `qualityFlag`) — not a single boolean.
-- `baselineStatus` and `lnRmssd` included now for Phase 3 upgrade path (baseline-aware HRV).
-- HRV data entry: manual input form in HRV sidebar module (RMSSD, HR, SDNN, duration, artifact%, device, protocol).
+- hrvState is session-only in-memory (no database, no localStorage in Phase 1).
+- 14 fields: 9 stored + 5 derived (computed by hrv-engine.js).
+- Quality gate uses 3 distinct fields (durationSec, artifactPct, qualityFlag).
+- baselineStatus and lnRmssd included for Phase 3 upgrade path.
 
 #### Flask Microserver
-- Build 1 = Flask microserver (`03_Scripts/server.py`) + `qrma-dashboard-v4.html`.
-- Full pipeline preserved: PDF → `csv_exporter_v2.py` → CSV → `json_exporter.py` → JSON → browser.
+- Full pipeline preserved: PDF → csv_exporter_v2.py → CSV → json_exporter.py → JSON → browser.
 - CSV kept as audit trail. Never bypassed.
-- Terminal used only once to start server (`python server.py`). All subsequent sessions via browser.
 - Dashboard remains fully functional without the server running.
 
-#### Build Sequence Confirmed
+#### Build Sequence
 ```
-Build 1 — server.py + qrma-dashboard-v4.html        ← COMPLETE
-Build 2 — hrv-engine.js + qrma-dashboard-v4.html    ← NEXT
+Build 1 — server.py + qrma-dashboard-v4.html        COMPLETE
+Build 2 — hrv-engine.js + qrma-dashboard-v4.html    NEXT
 ```
 
 ### Still Deferred
@@ -185,8 +240,8 @@ Build 2 — hrv-engine.js + qrma-dashboard-v4.html    ← NEXT
 - Debug log removal before production release
 - Parameter name translation (ID/EN display labels)
 - Manual input form for mt-bmi and mt-wc
-- PyWebView wrapper (Option C desktop packaging) — after Flask is stable
-- parser_v3.py UnicodeEncodeError on Windows cp1252 (α character in warning strings)
+- PyWebView wrapper (Option C) — after Flask stable
+- parser_v3.py UnicodeEncodeError on Windows cp1252
 
 ---
 
@@ -200,7 +255,7 @@ Build 2 — hrv-engine.js + qrma-dashboard-v4.html    ← NEXT
 - Joint Collagen (sk-jc) remapped: Kolagen Sendi→Sistem Pergerakan (Kolagen form p.72)
   sk-jc now populates: value 5.271, zone ringan for Ridwan
 - Sebum bidirectional alert added to buildAction()
-- getBadge('unknown') fallback: returns '—' instead of blank
+- getBadge('unknown') fallback: returns — instead of blank
 
 ### CSS Fixes
 - Pillar bar label font size increased, colour set to --txt
@@ -210,7 +265,6 @@ Build 2 — hrv-engine.js + qrma-dashboard-v4.html    ← NEXT
 
 ### Baseline Corrections
 - tx-pb corrected to normal (0.144 within PDF range 0.052-0.643)
-  Previous baseline claiming sedang was incorrect
 - Validated field count updated: 62/64 (sk-jc now maps correctly)
 
 ### QA Sign-off
