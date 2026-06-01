@@ -320,3 +320,91 @@ Build 2 — hrv-engine.js + qrma-dashboard-v4.html    NEXT
 
 ### Files Modified
 - qrma-dashboard-v4.html — FIX 4 + pillar display improvements
+
+---
+
+## 2026-06-01 — Build 2 Complete: HRV Phase 1
+
+### Status: SHIPPED ✓
+
+### What Was Built
+- `03_Scripts/hrv-engine.js` — HRV logic module v1.0.2
+- `qrma-dashboard-v4.html` — HRV sidebar module + 7 module strips
+- `03_Scripts/zone-scoring.js` — default language updated to English (v1.1)
+
+### hrv-engine.js — Implementation Details
+- `HRV_CONFIG` — all thresholds, weights, protocol definitions in one block
+- Pure computation functions (zero DOM dependency):
+  `computeRmssdBand()`, `computeALI()`, `aliBand()`,
+  `computeQualityFlag()`, `computeRecoveryState()`,
+  `getProtocolsForBand()`, `getAliInterpretation()`,
+  `getModuleContextSentence()`
+- `ingestHrv()` — reads 8 form fields, computes all 14 hrvState fields
+- `renderHrvModule()` — 3 sections: Status Card + Protocol Stack + Provenance
+- `renderHrvPanel()` — orchestrator, strips always render (empty or data)
+- 7 per-module strip renderers — shared `_renderStrip()` pattern
+- All user-facing strings bilingual EN/ID via `_t()` helper
+- `baselineStatus: 'unknown'` stubbed for Phase 3
+- `lfHfRatio` reads `hrv-lfratio` form field (nullable)
+- Phase A verified: 19/19 assertions PASS before HTML integration
+
+### HRV Sidebar Module
+- Autonomic Status Card: RMSSD · ALI Band · Resting HR · Quality
+- ALI Band explanation paragraph — client-level language, bilingual,
+  always visible, updates on language toggle
+- Recovery State label (Strained/Guarded/Adaptive) bilingual
+- ALI interpretation paragraph — band-driven, 4 variants bilingual
+- ALI-gated micro-protocol stack:
+  Very Low → V1, V3, V4
+  Low      → V1, V2, V3, V4
+  Adaptive → V1, V2, V3, V4, V5
+  High     → V2, V4, V5
+- Each protocol card: name · timing · technique · duration (bilingual)
+- Reading Provenance: device, protocol, duration, artifact%, timestamp
+- Compliance disclaimer bilingual
+
+### Per-Module HRV Strips (all 7 modules)
+- 2-line strip at top of each module page
+- Line 1 — vitals: RMSSD · ALI band · HR · Quality
+- Line 2 — module-specific context sentence (bilingual)
+- Empty state: "No HRV data available for this session."
+- Text size and color: full black, readable size
+- Band color tint on strip background
+
+### Manual Input Form
+Fields: RMSSD, HR, SDNN, LF/HF Ratio, Duration (default 300s),
+Artifact% (default 0), Device (default EliteHRV), Protocol (dropdown)
+"Load HRV" button → ingestHrv() → renders immediately
+
+### Language Toggle
+- Default language changed to English (zone-scoring.js v1.1)
+- Toggle handler now calls renderHrvPanel() — all HRV text
+  switches simultaneously with zone badges and pillar labels
+
+### Quality Gate
+- Pass: duration ≥ 240s AND artifact ≤ 3%
+- Caution: duration < 240s OR artifact 3–5%
+- Reject: artifact > 5%
+- 1-minute readings → Caution (directional only, not rejected)
+
+### ALI Vocabulary
+Never mapped to QRMA zone words (normal/ringan/sedang/berat).
+Own bands: Very Low / Low / Adaptive / High (0–24/25–49/50–74/75–100)
+CSS color classes: hrv-band-very-low/low/adaptive/high
+
+### HRV never alters QRMA scores
+7 module calculators untouched. HRV is additive display layer only.
+renderHrvPanel() called after calcAll() completes.
+
+### Files Created
+- `03_Scripts/hrv-engine.js` v1.0.2
+
+### Files Modified
+- `qrma-dashboard-v4.html` — HRV layer added
+- `03_Scripts/zone-scoring.js` — v1.1, default language EN
+
+### Phase 3 Deferred (as planned)
+- HRV file import (Polar/Garmin/Apple JSON)
+- localStorage for HRV session history
+- Baseline-aware HRV (baselineStatus field already stubbed)
+- Flask-served HRV file import
