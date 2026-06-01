@@ -1,6 +1,6 @@
 // =============================================================================
 // hrv-engine.js
-// Version: 1.0.7
+// Version: 1.0.8
 // Date: 2026-06-01
 // Purpose: HRV Autonomic Load Layer for the QRMA Usaka dashboard.
 //          Computes ALI, classifies autonomic state, selects micro-protocols,
@@ -133,6 +133,13 @@ const HRV_RECOVERY_LABELS = {
   adaptive: { en: 'Adaptive', id: 'Adaptif'   }
 };
 
+const HRV_BALANCE_LABELS = {
+  para_dominant:  { en: 'Parasympathetic Dominant', id: 'Dominasi Parasimpatis'  },
+  balanced:       { en: 'Balanced',                 id: 'Seimbang'               },
+  mixed:          { en: 'Mixed — Mild Sympathetic', id: 'Campuran — Simpatis Ringan' },
+  sympa_dominant: { en: 'Sympathetic Dominant',     id: 'Dominasi Simpatis'      }
+};
+
 // =============================================================================
 // SECTION 2 — Pure computation functions (no DOM dependency)
 // =============================================================================
@@ -197,6 +204,24 @@ function computeRecoveryState(ali) {
   return 'adaptive';
 }
 
+// computeBalanceScore — 0 = full parasympathetic, 100 = full sympathetic
+function computeBalanceScore(lfhf, rmssd) {
+  if (lfhf !== null && lfhf !== undefined) {
+    return Math.round(
+      ((Math.min(4.0, Math.max(0.5, lfhf)) - 0.5) / 3.5) * 100
+    );
+  }
+  return Math.round(_rmssdToLoad(rmssd));
+}
+
+// balanceZone — para_dominant | balanced | mixed | sympa_dominant
+function balanceZone(score) {
+  if (score < 25) return 'para_dominant';
+  if (score < 50) return 'balanced';
+  if (score < 75) return 'mixed';
+  return 'sympa_dominant';
+}
+
 // getProtocolsForBand — returns array of protocol objects for the given band
 function getProtocolsForBand(band) {
   const ids = HRV_CONFIG.protocolsByBand[band] ?? [];
@@ -225,6 +250,30 @@ function getAliInterpretation(band, lang) {
     }
   };
   return texts[band]?.[L] ?? '';
+}
+
+// getBalanceInterpretation — paragraph for the Autonomic Balance card
+function getBalanceInterpretation(zone, lang) {
+  const L = lang === 'id' ? 'id' : 'en';
+  const texts = {
+    para_dominant: {
+      en: 'Your nervous system is currently in a strong recovery and rest state. Digestion, immune function, and cellular repair are well supported right now. This is a good time for nourishment and restorative practices.',
+      id: 'Sistem saraf Anda saat ini berada dalam kondisi pemulihan dan istirahat yang kuat. Pencernaan, fungsi imun, dan perbaikan sel didukung dengan baik. Ini adalah waktu yang tepat untuk nutrisi dan praktik restoratif.'
+    },
+    balanced: {
+      en: 'Your nervous system shows a healthy balance between rest and activity. This supports good digestion, sleep quality, and stress resilience. Maintain this state with consistent daily breathing practices.',
+      id: 'Sistem saraf Anda menunjukkan keseimbangan yang sehat antara istirahat dan aktivitas. Ini mendukung kualitas pencernaan, tidur, dan ketahanan terhadap stres. Pertahankan kondisi ini dengan praktik pernapasan harian yang konsisten.'
+    },
+    mixed: {
+      en: 'Your nervous system shows some sympathetic activation alongside recovery signals. This is common after mental effort or mild stress. Pre-meal breathing and a post-meal walk help shift the balance toward recovery.',
+      id: 'Sistem saraf Anda menunjukkan aktivasi simpatis ringan bersama sinyal pemulihan. Ini umum terjadi setelah upaya mental atau stres ringan. Pernapasan sebelum makan dan jalan kaki setelah makan membantu menggeser keseimbangan menuju pemulihan.'
+    },
+    sympa_dominant: {
+      en: 'Your nervous system is currently more active in stress-response mode than recovery mode. This is common after mental effort, poor sleep, or sustained demands. Breathing practices before meals help shift this balance toward rest and digest.',
+      id: 'Sistem saraf Anda saat ini lebih aktif dalam mode respons stres daripada mode pemulihan. Ini umum terjadi setelah upaya mental, kurang tidur, atau tekanan yang berkelanjutan. Praktik pernapasan sebelum makan membantu menggeser keseimbangan ini menuju istirahat dan pencernaan.'
+    }
+  };
+  return texts[zone]?.[L] ?? '';
 }
 
 // getModuleContextSentence — one-line autonomic context for each module strip
@@ -409,6 +458,64 @@ function buildAliGauge(ali, band, lang) {
   </div>`;
 }
 
+// buildBalanceBar — returns the Autonomic Balance Card HTML + SVG string.
+// Pure: takes lfhf (nullable), rmssd, and lang as arguments; no DOM reads.
+function buildBalanceBar(lfhf, rmssd, lang) {
+  const L      = lang === 'id' ? 'id' : 'en';
+  const score  = computeBalanceScore(lfhf, rmssd);
+  const zone   = balanceZone(score);
+  const zLabel = HRV_BALANCE_LABELS[zone][L];
+  const interp = getBalanceInterpretation(zone, L);
+
+  const zoneColors = {
+    para_dominant:  '#4ade80',
+    balanced:       '#2dd4bf',
+    mixed:          '#fb923c',
+    sympa_dominant: '#f87171'
+  };
+  const markerColor = zoneColors[zone];
+
+  const pct      = Math.max(2, Math.min(98, score));
+  const markerX  = (pct / 100) * 300;
+  const clampedX = Math.max(20, Math.min(280, markerX));
+
+  const sourceNote = lfhf !== null && lfhf !== undefined
+    ? _t(`ⓘ Based on LF/HF ratio (${lfhf})`,
+         `ⓘ Berdasarkan rasio LF/HF (${lfhf})`)
+    : _t('ⓘ Estimated from RMSSD — enter LF/HF ratio for a more precise reading.',
+         'ⓘ Diperkirakan dari RMSSD — masukkan rasio LF/HF untuk pembacaan yang lebih akurat.');
+
+  const leftLabel  = _t('Parasympathetic / Rest & Digest', 'Parasimpatis / Istirahat & Cerna');
+  const rightLabel = _t('Sympathetic / Alert & Stress',    'Simpatis / Siaga & Stres');
+
+  const svg = `<svg viewBox="0 0 300 70" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0"   y="20" width="75"  height="16" fill="#4ade80"/>
+    <rect x="75"  y="20" width="75"  height="16" fill="#2dd4bf"/>
+    <rect x="150" y="20" width="75"  height="16" fill="#fb923c"/>
+    <rect x="225" y="20" width="75"  height="16" fill="#f87171"/>
+    <text x="0"   y="48" font-size="8" fill="#666" text-anchor="start">0</text>
+    <text x="75"  y="48" font-size="8" fill="#666" text-anchor="middle">25</text>
+    <text x="150" y="48" font-size="8" fill="#666" text-anchor="middle">50</text>
+    <text x="225" y="48" font-size="8" fill="#666" text-anchor="middle">75</text>
+    <text x="300" y="48" font-size="8" fill="#666" text-anchor="end">100</text>
+    <polygon points="${markerX},19 ${markerX - 6},8 ${markerX + 6},8" fill="#111"/>
+    <text x="${clampedX.toFixed(1)}" y="62" font-size="11" font-weight="bold" fill="${markerColor}" text-anchor="middle">${score}</text>
+  </svg>`;
+
+  return `
+    <div class="hrv-balance-card">
+      <h3 class="hrv-card-title">${_t('Autonomic Balance', 'Keseimbangan Otonom')}</h3>
+      <div class="hrv-balance-axis">
+        <span class="hrv-balance-left">${leftLabel}</span>
+        <span class="hrv-balance-right">${rightLabel}</span>
+      </div>
+      <div class="hrv-balance-bar-wrap">${svg}</div>
+      <div class="hrv-balance-state" style="color:${markerColor}">${zLabel}</div>
+      <p class="hrv-balance-interp">${interp}</p>
+      <p class="hrv-balance-source">${sourceNote}</p>
+    </div>`;
+}
+
 // =============================================================================
 // SECTION 6 — renderHrvModule()
 // =============================================================================
@@ -504,7 +611,8 @@ function renderHrvModule() {
       <p class="hrv-disclaimer">${disclaimer}</p>
     </div>`;
 
-  _hset('hrv-mod-body', statusCard + protocolSection + provenanceSection);
+  const balanceCard = buildBalanceBar(s.lfHfRatio, s.rmssd, L);
+  _hset('hrv-mod-body', statusCard + balanceCard + protocolSection + provenanceSection);
 }
 
 // =============================================================================
