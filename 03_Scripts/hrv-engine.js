@@ -1,6 +1,6 @@
 // =============================================================================
 // hrv-engine.js
-// Version: 1.0.9
+// Version: 1.1.2
 // Date: 2026-06-01
 // Purpose: HRV Autonomic Load Layer for the QRMA Usaka dashboard.
 //          Computes ALI, classifies autonomic state, selects micro-protocols,
@@ -416,7 +416,7 @@ function buildAliGauge(ali, band, lang) {
     const txt = (typeof HRV_BAND_LABELS !== 'undefined')
       ? (HRV_BAND_LABELS[lp.key][lang] || HRV_BAND_LABELS[lp.key]['en'])
       : lp.key;
-    return `<text x="${lp.x}" y="22" text-anchor="middle" font-size="13" fill="#111" data-gauge-label data-gauge-key="${lp.key}">${txt}</text>`;
+    return `<text x="${lp.x}" y="22" text-anchor="middle" style="fill:var(--txt);font-size:9px" data-gauge-label data-gauge-key="${lp.key}">${txt}</text>`;
   }).join('\n      ');
 
   // Scale numbers below the bar
@@ -427,7 +427,7 @@ function buildAliGauge(ali, band, lang) {
     { val: '75',  x: 225, anchor: 'middle' },
     { val: '100', x: 300, anchor: 'end'    }
   ].map(n =>
-    `<text x="${n.x}" y="58" text-anchor="${n.anchor}" font-size="11" fill="#666">${n.val}</text>`
+    `<text x="${n.x}" y="58" text-anchor="${n.anchor}" style="fill:var(--txt);font-size:8px">${n.val}</text>`
   ).join('\n      ');
 
   // Marker triangle — tip pointing down, touching top of bar at ALI position
@@ -493,11 +493,11 @@ function buildBalanceBar(lfhf, rmssd, lang) {
     <rect x="75"  y="20" width="75"  height="16" fill="#2dd4bf"/>
     <rect x="150" y="20" width="75"  height="16" fill="#fb923c"/>
     <rect x="225" y="20" width="75"  height="16" fill="#f87171"/>
-    <text x="0"   y="48" font-size="8" fill="#666" text-anchor="start">0</text>
-    <text x="75"  y="48" font-size="8" fill="#666" text-anchor="middle">25</text>
-    <text x="150" y="48" font-size="8" fill="#666" text-anchor="middle">50</text>
-    <text x="225" y="48" font-size="8" fill="#666" text-anchor="middle">75</text>
-    <text x="300" y="48" font-size="8" fill="#666" text-anchor="end">100</text>
+    <text x="0"   y="48" style="fill:var(--txt);font-size:8px" text-anchor="start">0</text>
+    <text x="75"  y="48" style="fill:var(--txt);font-size:8px" text-anchor="middle">25</text>
+    <text x="150" y="48" style="fill:var(--txt);font-size:8px" text-anchor="middle">50</text>
+    <text x="225" y="48" style="fill:var(--txt);font-size:8px" text-anchor="middle">75</text>
+    <text x="300" y="48" style="fill:var(--txt);font-size:8px" text-anchor="end">100</text>
     <polygon points="${markerX},19 ${markerX - 6},8 ${markerX + 6},8" fill="#111"/>
     <text x="${clampedX.toFixed(1)}" y="62" font-size="11" font-weight="bold" fill="currentColor" class="hrv-balance-number" text-anchor="middle">${score}</text>
   </svg>`;
