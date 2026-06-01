@@ -1,6 +1,6 @@
 // =============================================================================
 // hrv-engine.js
-// Version: 1.0.8
+// Version: 1.0.9
 // Date: 2026-06-01
 // Purpose: HRV Autonomic Load Layer for the QRMA Usaka dashboard.
 //          Computes ALI, classifies autonomic state, selects micro-protocols,
@@ -440,7 +440,7 @@ function buildAliGauge(ali, band, lang) {
   const bandTxt  = (typeof HRV_BAND_LABELS !== 'undefined')
     ? (HRV_BAND_LABELS[band][lang] || HRV_BAND_LABELS[band]['en'])
     : band;
-  const aliNum  = `<text x="${labelX.toFixed(1)}" y="70" text-anchor="middle" font-size="20" font-weight="bold" fill="${aliColor}">${ali}</text>`;
+  const aliNum  = `<text x="${labelX.toFixed(1)}" y="70" text-anchor="middle" font-size="20" font-weight="bold" fill="currentColor" class="hrv-gauge-number">${ali}</text>`;
   const bandLbl = `<text x="${labelX.toFixed(1)}" y="83" text-anchor="middle" font-size="14" fill="#111" data-gauge-band="${band}" data-gauge-band-val="${band}">${bandTxt}</text>`;
 
   const title = `<div class="hrv-gauge-title">${_t('ALI — Autonomic Load Index', 'ALI — Indeks Beban Otonom')}</div>`;
@@ -499,7 +499,7 @@ function buildBalanceBar(lfhf, rmssd, lang) {
     <text x="225" y="48" font-size="8" fill="#666" text-anchor="middle">75</text>
     <text x="300" y="48" font-size="8" fill="#666" text-anchor="end">100</text>
     <polygon points="${markerX},19 ${markerX - 6},8 ${markerX + 6},8" fill="#111"/>
-    <text x="${clampedX.toFixed(1)}" y="62" font-size="11" font-weight="bold" fill="${markerColor}" text-anchor="middle">${score}</text>
+    <text x="${clampedX.toFixed(1)}" y="62" font-size="11" font-weight="bold" fill="currentColor" class="hrv-balance-number" text-anchor="middle">${score}</text>
   </svg>`;
 
   return `
