@@ -408,3 +408,14 @@ renderHrvPanel() called after calcAll() completes.
 - localStorage for HRV session history
 - Baseline-aware HRV (baselineStatus field already stubbed)
 - Flask-served HRV file import
+
+---
+
+## 2026-06-01 — Minor Fix: HRV Default Device Name
+
+### FIX — HRV device default mismatch
+- HTML form showed `EliteHRV` but hrv-engine.js fallback said `Polar H10`
+- Aligned both to `Polar H10` as the default device name
+- Files modified:
+  - `qrma-dashboard-v4.html` — input value="Polar H10"
+  - `03_Scripts/hrv-engine.js` — fallback string updated to 'Polar H10'

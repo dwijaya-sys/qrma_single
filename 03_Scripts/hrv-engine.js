@@ -1,6 +1,6 @@
 // =============================================================================
 // hrv-engine.js
-// Version: 1.0.2
+// Version: 1.0.3
 // Date: 2026-06-01
 // Purpose: HRV Autonomic Load Layer for the QRMA Usaka dashboard.
 //          Computes ALI, classifies autonomic state, selects micro-protocols,
@@ -336,6 +336,77 @@ function _t(enStr, idStr) {
   return (typeof currentLang !== 'undefined' && currentLang === 'id') ? idStr : enStr;
 }
 
+// buildAliGauge — returns a self-contained SVG string for the ALI semicircle gauge.
+// Pure: takes ali (0-100), band string, and lang as arguments; no DOM reads.
+function buildAliGauge(ali, band, lang) {
+  const cx = 100, cy = 110, r = 80;
+
+  const zoneColors = {
+    high:     '#4ade80',
+    adaptive: '#2dd4bf',
+    low:      '#fb923c',
+    very_low: '#f87171'
+  };
+
+  // Convert polar degrees to SVG arc path (sweep-flag=1 = CW = upper arc)
+  function _arcPath(startDeg, endDeg) {
+    const rad = d => (d * Math.PI) / 180;
+    const x1 = cx + r * Math.cos(rad(startDeg));
+    const y1 = cy + r * Math.sin(rad(startDeg));
+    const x2 = cx + r * Math.cos(rad(endDeg));
+    const y2 = cy + r * Math.sin(rad(endDeg));
+    return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+  }
+
+  // 4 arc segments — 45° each across -180° → 0°
+  const arcSegs = [
+    { color: '#4ade80', s: -180, e: -135 },
+    { color: '#2dd4bf', s: -135, e:  -90 },
+    { color: '#fb923c', s:  -90, e:  -45 },
+    { color: '#f87171', s:  -45, e:    0 }
+  ].map(a =>
+    `<path d="${_arcPath(a.s, a.e)}" stroke="${a.color}" stroke-width="14" stroke-linecap="butt" fill="none"/>`
+  ).join('\n    ');
+
+  // Needle: drawn pointing right, rotated to ALI angle
+  // ali=0 → angle=-180 (left) · ali=50 → angle=-90 (up) · ali=100 → angle=0 (right)
+  const angle = -180 + (ali / 100) * 180;
+  const needle = `<line x1="${cx}" y1="${cy}" x2="${cx + 65}" y2="${cy}" stroke="#333" stroke-width="2.5" stroke-linecap="round" transform="rotate(${angle.toFixed(1)},${cx},${cy})"/>`;
+  const pivot  = `<circle cx="${cx}" cy="${cy}" r="5" fill="#333"/>`;
+
+  // Zone labels above/outside the arc
+  const labelDefs = [
+    { key: 'high',     x: 18,  y: 75 },
+    { key: 'adaptive', x: 62,  y: 28 },
+    { key: 'low',      x: 138, y: 28 },
+    { key: 'very_low', x: 182, y: 75 }
+  ];
+  const labels = labelDefs.map(lp => {
+    const txt = (typeof HRV_BAND_LABELS !== 'undefined')
+      ? (HRV_BAND_LABELS[lp.key][lang] || HRV_BAND_LABELS[lp.key]['en'])
+      : lp.key;
+    return `<text x="${lp.x}" y="${lp.y}" text-anchor="middle" font-size="9" fill="#666" data-gauge-label data-gauge-key="${lp.key}">${txt}</text>`;
+  }).join('\n    ');
+
+  // Center display — ALI number + band label inside the gauge bowl
+  const aliColor = zoneColors[band] || '#666';
+  const bandTxt  = (typeof HRV_BAND_LABELS !== 'undefined')
+    ? (HRV_BAND_LABELS[band][lang] || HRV_BAND_LABELS[band]['en'])
+    : band;
+  const display = [
+    `<text x="${cx}" y="88" text-anchor="middle" font-size="22" font-weight="bold" fill="${aliColor}">${ali}</text>`,
+    `<text x="${cx}" y="104" text-anchor="middle" font-size="10" fill="#666" data-gauge-band="${band}">${bandTxt}</text>`
+  ].join('\n    ');
+
+  return `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+    ${arcSegs}
+    ${labels}
+    ${needle}
+    ${pivot}
+    ${display}
+  </svg>`;
+}
+
 // =============================================================================
 // SECTION 6 — renderHrvModule()
 // =============================================================================
@@ -361,6 +432,9 @@ function renderHrvModule() {
   const statusCard = `
     <div class="hrv-status-card">
       <h3 class="hrv-card-title">${_t('Autonomic Status', 'Status Otonom')}</h3>
+      <div class="hrv-gauge-wrap">
+        ${buildAliGauge(s.autonomicLoadIndex, b, L)}
+      </div>
       <div class="hrv-metric-grid">
         <div class="hrv-metric">
           <span class="hrv-metric-lbl">RMSSD</span>

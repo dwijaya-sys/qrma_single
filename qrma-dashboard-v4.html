@@ -254,6 +254,8 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
 .hrv-quality-pass{background:var(--okHi);color:var(--ok);}
 .hrv-quality-caution{background:var(--warnHi);color:var(--warn);}
 .hrv-quality-reject{background:var(--errHi);color:var(--err);}
+.hrv-gauge-wrap{display:flex;justify-content:center;margin:var(--sp3) 0 var(--sp2) 0;}
+.hrv-gauge-wrap svg{width:100%;max-width:220px;height:auto;}
 .hrv-ali-explain{font-size:var(--text-sm);color:var(--txt);line-height:1.6;margin-top:var(--sp3);padding:var(--sp3);background:var(--surface,rgba(0,0,0,.06));border-radius:var(--rad);}
 </style>
   <script src="03_Scripts/zone-scoring.js"></script>
@@ -629,7 +631,7 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
       <div class="igrp"><label class="ilb" for="hrv-lfratio">LF/HF Ratio — optional</label><input class="ifd" type="number" id="hrv-lfratio" step="0.01" placeholder="optional"><div class="irg">Sympathovagal balance marker</div></div>
       <div class="igrp"><label class="ilb" for="hrv-duration">Recording Duration (sec)</label><input class="ifd" type="number" id="hrv-duration" step="1" value="300"><div class="irg">Minimum recommended: 240s (4 min)</div></div>
       <div class="igrp"><label class="ilb" for="hrv-artifact">Artifact % (default 0)</label><input class="ifd" type="number" id="hrv-artifact" step="0.1" value="0"><div class="irg">Caution &gt;3% · Reject &gt;5%</div></div>
-      <div class="igrp"><label class="ilb" for="hrv-device">Device</label><input class="ifd" type="text" id="hrv-device" value="EliteHRV"><div class="irg">Device used for measurement</div></div>
+      <div class="igrp"><label class="ilb" for="hrv-device">Device</label><input class="ifd" type="text" id="hrv-device" value="Polar H10"><div class="irg">Device used for measurement</div></div>
       <div class="igrp"><label class="ilb" for="hrv-protocol">Protocol</label><select class="ifd" id="hrv-protocol"><option value="supine_rest_5min">Supine Rest 5 min</option><option value="seated_5min">Seated 5 min</option><option value="morning_supine">Morning Supine</option><option value="other">Other</option></select><div class="irg">Measurement context</div></div>
     </div>
     <div class="bgrp"><button class="btn btnp" onclick="ingestHrv()"><i data-lucide="activity" width="16" height="16"></i> Load HRV</button></div>
@@ -1510,6 +1512,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
       if (typeof renderHrvPanel === 'function') renderHrvPanel();
+      document.querySelectorAll('[data-gauge-label]').forEach(el => {
+        const key = el.dataset.gaugeKey;
+        if (key && typeof HRV_BAND_LABELS !== 'undefined') {
+          el.textContent = HRV_BAND_LABELS[key][lang] || HRV_BAND_LABELS[key]['en'];
+        }
+      });
+      document.querySelectorAll('[data-gauge-band]').forEach(el => {
+        const band = el.dataset.gaugeBand;
+        if (band && typeof HRV_BAND_LABELS !== 'undefined') {
+          el.textContent = HRV_BAND_LABELS[band][lang] || HRV_BAND_LABELS[band]['en'];
+        }
+      });
     });
   }
   initImportCSV();
