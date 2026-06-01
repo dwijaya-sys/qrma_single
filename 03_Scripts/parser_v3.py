@@ -1,7 +1,7 @@
 # parser_v3.py
 # =============================================================================
-# QRMA PDF Parser — Version 3.1
-# Last updated: 2026-05-27
+# QRMA PDF Parser — Version 3.2
+# Last updated: 2026-06-01
 # =============================================================================
 #
 # Changelog from v2:
@@ -48,6 +48,7 @@ import re
 import os
 import json
 import csv
+import sys
 from datetime import datetime
 
 
@@ -914,7 +915,10 @@ def export_dashboard_csv(parsed_data, primary_lookup, output_csv_path):
     if warnings:
         print(f"[!] {len(warnings)} warning(s) — see 'warnings' column in CSV.")
         for w in warnings:
-            print(f"    -> {w}")
+            print(f"    -> {w}".encode(
+                sys.stdout.encoding or 'utf-8',
+                errors='replace'
+            ).decode(sys.stdout.encoding or 'utf-8'))
 
     return mapped, zones, warnings, unmapped_params
 
