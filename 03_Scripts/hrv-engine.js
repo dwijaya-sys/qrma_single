@@ -1,6 +1,6 @@
 // =============================================================================
 // hrv-engine.js
-// Version: 1.0.1
+// Version: 1.0.2
 // Date: 2026-06-01
 // Purpose: HRV Autonomic Load Layer for the QRMA Usaka dashboard.
 //          Computes ALI, classifies autonomic state, selects micro-protocols,
@@ -352,6 +352,11 @@ function renderHrvModule() {
   const interp = getAliInterpretation(b, L);
   const protos = getProtocolsForBand(b);
 
+  const aliExplain = _t(
+    'The ALI Band shows how much load your nervous system is currently carrying. It is calculated from your heart rate variability (RMSSD) and resting heart rate — two signals that reflect how well your body is recovering and adapting. A lower band (Adaptive or High) means your nervous system is relaxed and flexible. A higher band (Low or Very Low) means your body is working harder than usual to maintain balance, and recovery practices become the priority.',
+    'Band ALI menunjukkan seberapa besar beban yang sedang ditanggung sistem saraf Anda saat ini. Nilai ini dihitung dari variabilitas detak jantung (RMSSD) dan detak jantung istirahat — dua sinyal yang mencerminkan seberapa baik tubuh Anda memulihkan diri dan beradaptasi. Band yang lebih rendah (Adaptif atau Tinggi) berarti sistem saraf Anda rileks dan fleksibel. Band yang lebih tinggi (Rendah atau Sangat Rendah) berarti tubuh Anda bekerja lebih keras dari biasanya untuk menjaga keseimbangan, dan praktik pemulihan menjadi prioritas utama.'
+  );
+
   // Section 1 — Autonomic Status Card
   const statusCard = `
     <div class="hrv-status-card">
@@ -373,6 +378,9 @@ function renderHrvModule() {
           <span class="hrv-metric-lbl">${_t('Reading Quality', 'Kualitas Rekaman')}</span>
           <span class="hrv-qual-chip ${_qualityCss(s.qualityFlag)}">${qLabel}</span>
         </div>
+      </div>
+      <div class="hrv-ali-explain">
+        ${aliExplain}
       </div>
       <div class="hrv-recovery-row">
         <span class="hrv-recovery-lbl">${_t('Recovery State', 'Status Pemulihan')}:</span>

@@ -254,6 +254,7 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
 .hrv-quality-pass{background:var(--okHi);color:var(--ok);}
 .hrv-quality-caution{background:var(--warnHi);color:var(--warn);}
 .hrv-quality-reject{background:var(--errHi);color:var(--err);}
+.hrv-ali-explain{font-size:var(--text-sm);color:var(--txt);line-height:1.6;margin-top:var(--sp3);padding:var(--sp3);background:var(--surface,rgba(0,0,0,.06));border-radius:var(--rad);}
 </style>
   <script src="03_Scripts/zone-scoring.js"></script>
   <script src="03_Scripts/hrv-engine.js"></script>
@@ -1508,6 +1509,7 @@ document.addEventListener('DOMContentLoaded', () => {
           el.textContent = getPillarLabel(burden);
         }
       });
+      if (typeof renderHrvPanel === 'function') renderHrvPanel();
     });
   }
   initImportCSV();

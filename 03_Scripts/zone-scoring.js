@@ -1,6 +1,6 @@
 // =============================================================================
 // zone-scoring.js
-// Version: 1.0
+// Version: 1.1
 // Date: 2026-05-26
 // Purpose: Standalone zone-to-score mapping module for the QRMA dashboard.
 //          Converts QRMA PDF zone labels (normal/ringan/sedang/berat) into
@@ -8,7 +8,7 @@
 //          No HTML dependency. No imports. Safe to load in browser or Node.
 // =============================================================================
 
-let currentLang = 'id';
+let currentLang = 'en';
 
 const ZONE_SCORES = {
   normal:  9,
