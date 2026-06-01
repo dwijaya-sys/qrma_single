@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>HRV Engine — throwaway test</title>
+  <script src="zone-scoring.js"></script>
+  <script src="hrv-engine.js"></script>
+</head>
+<body>
+<p>Open DevTools console to see results.</p>
+<script>
+function assert(label, actual, expected) {
+  const pass = JSON.stringify(actual) === JSON.stringify(expected);
+  console.log((pass ? 'PASS' : 'FAIL') + ' — ' + label
+    + (pass ? '' : ' | got: ' + JSON.stringify(actual)
+             + ' expected: ' + JSON.stringify(expected)));
+}
+
+// computeRmssdBand
+assert('rmssdBand very_low', computeRmssdBand(10),  'very_low');
+assert('rmssdBand low',      computeRmssdBand(28),  'low');
+assert('rmssdBand adaptive', computeRmssdBand(55),  'adaptive');
+assert('rmssdBand high',     computeRmssdBand(80),  'high');
+
+// computeALI
+assert('ALI very_low rmssd',  aliBand(computeALI(10, 85)), 'very_low');
+assert('ALI low rmssd',       aliBand(computeALI(28, 74)), 'low');
+assert('ALI adaptive rmssd',  aliBand(computeALI(55, 65)), 'adaptive');
+assert('ALI high rmssd',      aliBand(computeALI(80, 58)), 'high');
+
+// computeQualityFlag
+assert('quality pass',    computeQualityFlag(300, 0),   'pass');
+assert('quality caution', computeQualityFlag(120, 0),   'caution');
+assert('quality caution', computeQualityFlag(300, 4),   'caution');
+assert('quality reject',  computeQualityFlag(300, 6),   'reject');
+
+// computeRecoveryState
+assert('recovery strained', computeRecoveryState(80), 'strained');
+assert('recovery guarded',  computeRecoveryState(60), 'guarded');
+assert('recovery adaptive', computeRecoveryState(30), 'adaptive');
+
+// getProtocolsForBand
+assert('protocols very_low count', getProtocolsForBand('very_low').length, 3);
+assert('protocols low count',      getProtocolsForBand('low').length,      4);
+assert('protocols adaptive count', getProtocolsForBand('adaptive').length, 5);
+assert('protocols high count',     getProtocolsForBand('high').length,     3);
+
+// hrvState null on load
+assert('hrvState null', hrvState, null);
+
+console.log('--- HRV Engine test complete ---');
+</script>
+</body>
+</html>
