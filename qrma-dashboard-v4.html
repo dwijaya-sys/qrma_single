@@ -649,6 +649,28 @@ function bar(label,val,max,ccls){const pct=Math.min(100,(val/max)*100);const fc=
 function bmr(name,val,st,zone){const m={normal:'cok2',borderline:'cbl',deficient:'cdef',abnormal:'cab'};const zA=zone?' data-zone="'+zone+'"':'';const label=zone&&typeof getBadge==='function'?getBadge(zone):{normal:'Normal',borderline:'Borderline',deficient:'Deficient',abnormal:'Abnormal'}[st]||st;return '<div class="bmr"><span class="bmn">'+name+'</span><span class="bmv">'+(typeof val==='number'?val.toFixed(3):val)+'</span><span class="chip '+(m[st]||'cbl')+'"'+zA+'>'+label+'</span></div>';}
 function aal(type,title,desc){const m={err:'aerr',warn:'awarn',info:'ainfo',ok:'aok'};const ic={err:'alert-circle',warn:'alert-triangle',info:'info',ok:'check-circle'};return '<div class="aal '+(m[type])+'"><i data-lucide="'+ic[type]+'" width="16" height="16" class="aalic"></i><div class="aalb"><div class="aalt">'+title+'</div><div class="aald">'+desc+'</div></div></div>';}
 function ftrow(label,foods){return '<div style="margin-bottom:var(--sp3)"><div style="font-size:var(--text-sm);font-weight:600;margin-bottom:var(--sp2)">'+label+'</div><div class="ftags">'+foods.map(f=>'<span class="ftag">&#127807; '+f+'</span>').join('')+'</div></div>';}
+function getPillarLabel(burden){
+  const labels={
+    minimal:{en:'Minimal Load',id:'Beban Minimal'},
+    mild:   {en:'Mild Load',   id:'Beban Ringan'},
+    moderate:{en:'Moderate Load',id:'Beban Sedang'},
+    high:   {en:'High Load',   id:'Beban Tinggi'}
+  };
+  const key=burden<3?'minimal':burden<5?'mild':burden<7?'moderate':'high';
+  return labels[key][currentLang]||labels[key]['en'];
+}
+function barPillar(label,val,ccls){
+  const pct=Math.min(100,(val/10)*100);
+  const fc=ccls.replace('c','f');
+  const vl=getPillarLabel(val);
+  return '<div class="sbw"><div class="sbh"><span class="sbhl">'+label+'</span>'+
+    '<span style="display:flex;align-items:center;gap:var(--sp2)">'+
+      '<span class="'+ccls+'" style="font-weight:700">'+val.toFixed(1)+'</span>'+
+      '<span style="font-size:var(--text-sm);color:var(--txtM)">'+vl+'</span>'+
+    '</span></div>'+
+    '<div class="sbt"><div class="sbf '+fc+'" style="width:'+pct+'%"></div></div>'+
+    '<div class="sbl"><span>0</span><span>10</span></div></div>';
+}
 function cBioAge(){
   const age = g('age');
   const zd  = window.zoneData || {};
@@ -864,7 +886,7 @@ function buildAction(d){const rows=[];if(d.ba.ba>d.ba.age+5)rows.push({p:'High',
       t:'Dermatological assessment; skin hydration test' });
 rows.sort((a,b)=>({High:0,Medium:1,Low:2}[a.p]-{High:0,Medium:1,Low:2}[b.p]));if(!rows.length){document.getElementById('r-acttbl').innerHTML=aal('ok','No Critical Flags','All screening signals within normal reference ranges. Routine monitoring recommended.');}else{let h='<table class="atbl"><thead><tr><th>Priority</th><th>Domain</th><th>Screening Finding</th><th>Suggested Confirmatory Tests</th></tr></thead><tbody>';rows.forEach(r=>{const pc=r.p==='High'?'phi':r.p==='Medium'?'pmd':'plo';h+='<tr><td class="'+pc+'">'+r.p+'</td><td>'+r.dom+'</td><td>'+r.f+'</td><td style="font-size:var(--text-sm);color:var(--txtM)">'+r.t+'</td></tr>';});h+='</tbody></table>';document.getElementById('r-acttbl').innerHTML=h;}const fp=[];if(d.ox.s>40)fp.push(ftrow('Antioxidant Priority',['Berries','Spinach','Green Tea','Brazil Nuts (Se)','Citrus (Vit C)','Sunflower Seeds (Vit E)','Dark Chocolate']));if(d.mt.s>30)fp.push(ftrow('Metabolic Support',['Oats + Legumes (Fiber)','Fatty Fish (Omega-3)','Bitter Melon','Cinnamon','Reduce Refined Carbs']));if(d.cr.s>30)fp.push(ftrow('Cardio-Renal',['Bananas + Avocado (K)','Pumpkin Seeds (Mg)','Quercetin Foods (Onion)','Reduce Sodium']));if(d.nt.def>3)fp.push(ftrow('Micronutrient Diversity',['Dark Leafy Greens (Mg, Folate)','Pumpkin Seeds (Zinc)','Seaweed (Iodine)','Fatty Fish (D3, B6)','Chickpeas (Folate)']));if(d.sk.s<60)fp.push(ftrow('Skin + Collagen',['Bone Broth','Fish / Chicken Skin','Egg Whites','Vitamin C Cofactors','Garlic (Sulfur)','Berries (Resveratrol)']));document.getElementById('r-actfood').innerHTML=fp.length?fp.join(''):'<p style="color:var(--txtM);font-size:var(--text-sm)">Continue balanced whole-foods diet. No critical nutritional gaps identified.</p>';const hi=rows.filter(r=>r.p==='High');document.getElementById('r-actal').innerHTML=hi.length?hi.map(r=>aal('err',r.dom+' - High Priority',r.f+'. Confirm: '+r.t)).join(''):aal('ok','No High-Priority Alerts','All flags at medium or low priority. See confirmatory tests table.');}
 function calcAll(){const ba=cBioAge(),ox=cOx(),tx=cTx(),mt=cMt(),cr=cCr(),nt=cNt(),sk=cSk();const GS={ox:ox.s,tx:tx.s,mt:mt.s,cr:cr.s,nt:nt.s,sk:sk.s};
-const delta=ba.ba-ba.age;const baCls=delta>10?'cbad':delta>3?'cwarn':'cok';se('r-bav',ba.ba+'y',baCls);se('r-cav',ba.age+'y','cinfo');se('r-del',(delta>=0?'+':'')+delta+'y',delta>0?'cbad':'cok');document.getElementById('r-ba').style.display='block';document.getElementById('r-babars').innerHTML=bar('Pillar 1: Metabolic/Vascular',ba.p1,30,'cwarn')+bar('Pillar 2: Oxidative/Toxic',ba.p2,30,'cbad')+bar('Pillar 3: Regenerative Deficits',ba.p3,30,'cwarn');se('k-ba',ba.ba+'y',baCls);document.getElementById('k-bad').textContent=(delta>=0?'+':'')+delta+'y';
+const delta=ba.ba-ba.age;const baCls=delta>10?'cbad':delta>3?'cwarn':'cok';se('r-bav',ba.ba+'y',baCls);se('r-cav',ba.age+'y','cinfo');se('r-del',(delta>=0?'+':'')+delta+'y',delta>0?'cbad':'cok');document.getElementById('r-ba').style.display='block';document.getElementById('r-babars').innerHTML=barPillar('Pillar 1: Metabolic/Vascular',ba.p1,'cwarn')+barPillar('Pillar 2: Oxidative/Toxic',ba.p2,'cbad')+barPillar('Pillar 3: Regenerative Deficits',ba.p3,'cwarn');se('k-ba',ba.ba+'y',baCls);document.getElementById('k-bad').textContent=(delta>=0?'+':'')+delta+'y';
 const oxC=clrc(ox.s,30,60);document.getElementById('r-ox').style.display='block';se('r-oxs',ox.s+'%',oxC);se('r-oxl',lbl(ox.s,30,60),'');se('r-ax',ox.ax+'%',ox.ax>=60?'cok':'cbad');se('r-px',ox.px+'%',ox.px<=40?'cok':'cbad');document.getElementById('r-oxbm').innerHTML='<div class="bml">'+bmr('Glutathione',       ox.gsh, zbs('ox-gsh','res'),(window.zoneData||{})['ox-gsh_zone']||'unknown')+
 bmr('CoQ10',             ox.coq, zbs('ox-coq','res'),(window.zoneData||{})['ox-coq_zone']||'unknown')+
 bmr('Vitamin C',         ox.vc,  zbs('ox-vc', 'res'),(window.zoneData||{})['ox-vc_zone']||'unknown')+
