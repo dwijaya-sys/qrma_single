@@ -967,13 +967,13 @@ function mdToTxt(md) {
     l = l.replace(/\*\*([^*]+)\*\*/g, '$1');
     l = l.replace(/\*([^*]+)\*/g,     '$1');
 
-    // ── Bullet - → * (indented) ──
-    l = l.replace(/^(\s*)-\s+/, '$1  * ');
+    // ── Bullet - → - (indented, no asterisk) ──
+    l = l.replace(/^(\s*)-\s+/, '$1  - ');
 
     out.push(l);
   }
 
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').replace(/\*/g, '').trim();
 }
 
 // ─────────────────────────────────────────────────────────────
