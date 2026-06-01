@@ -811,7 +811,7 @@ function cNt(){
     const score = scoreFromZone(zone)===0 ? 5 : scoreFromZone(zone);
     total += score;
     if(zone==='normal')               opt++;
-    else if(zone==='sedang'||zone==='berat') def++;
+    else if(zone==='ringan'||zone==='sedang'||zone==='berat') def++;
     return{n:f.n, v:g(f.id), zone, score};
   });
 
