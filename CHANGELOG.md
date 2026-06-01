@@ -282,3 +282,41 @@ Build 2 — hrv-engine.js + qrma-dashboard-v4.html    NEXT
 - Parameter name translation (ID/EN display labels)
 - Manual input form for mt-bmi and mt-wc
 - Flask microserver for PDF import (Option B)
+
+---
+
+## 2026-06-01 — Bug Fixes + Bio Age Pillar Display Improvements
+
+### FIX 4 — Nutrient Deficient Count always showing 0
+- cNt() counter only incremented def for sedang/berat zones
+- ringan zone was silently ignored — fell through without counting
+- Fix: added ringan to the deficient condition
+- Before: else if(zone==='sedang'||zone==='berat') def++
+- After:  else if(zone==='ringan'||zone==='sedang'||zone==='berat') def++
+- Verified with Kamiyanti: Deficient Count now correctly shows 5
+  (Zinc, Silicon, Vitamin D3, Vitamin E, Folate — all ringan)
+
+### IMPROVEMENT — Bio Age Pillar Bar rescaled + verbal labels added
+
+#### Rescaled axis from 0-30 to 0-10
+- Old axis (0-30) made scores like 4.4 look negligible to a layman
+- Real-world scores cluster between 1-9 — 0-10 is the honest range
+- Bar fill width updated from (value/30*100)% to (value/10*100)%
+- Displayed number unchanged — only axis and proportion changed
+- New dedicated barPillar() function created — generic bar() untouched
+
+#### Verbal load labels added (bilingual)
+- Each pillar now shows a verbal interpretation next to the score
+- Thresholds:
+  burden < 3.0  → Minimal Load  / Beban Minimal
+  burden < 5.0  → Mild Load     / Beban Ringan
+  burden < 7.0  → Moderate Load / Beban Sedang
+  burden >= 7.0 → High Load     / Beban Tinggi
+- getPillarLabel(burden) reads currentLang from zone-scoring.js
+- Language toggle updates labels via data-pillar-label + data-burden 
+  attributes — same pattern as existing [data-zone] badge toggle
+- No calcAll() call needed on toggle — surgical DOM update only
+- cBioAge() formula and return values completely untouched
+
+### Files Modified
+- qrma-dashboard-v4.html — FIX 4 + pillar display improvements
