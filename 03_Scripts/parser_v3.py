@@ -105,6 +105,17 @@ DASHBOARD_RAW_FIELDS = [
     "sk-sc", "sk-el", "sk-tw", "sk-sb",
     "sk-ml", "sk-sn", "sk-ec", "sk-jc",
 
+    # Digestive Function module (v5.0)
+    "dg-lp",  # Gastric Peristalsis
+    "dg-la",  # Gastric Absorption
+    "dg-sp",  # Small Intestine Peristalsis
+    "dg-sa",  # Small Intestine Absorption
+    "dg-lc",  # Large Intestine Motility
+    "dg-ca",  # Colonic Absorption
+    "dg-bi",  # Intestinal Bacteria Balance
+    "dg-ip",  # Intraluminal Pressure  <- higher-worse (direction auto-detected from PDF)
+    "dg-ds",  # Digestive System Overall (secondary, half-weight in cDg Sub-index C)
+
     # Meta
     "warnings",
 ]
@@ -257,6 +268,16 @@ _PARAM_NAME_RE = re.compile(
     re.MULTILINE | re.UNICODE,
 )
 
+# Structural noise lines that must never be treated as orphan name fragments.
+# Covers: section headers, legend word fragments ("Abnormal Sedang..."),
+# and bare parenthetical zone-suffix lines ("(++) (+++)" legend code lines
+# that appear when pdfplumber splits the Referensi Standar header across pages).
+_RS_NOISE_RE = re.compile(
+    r"^(Parameter|Deskripsi|Abnormal|Normal)\b"  # legend words and section headers
+    r"|\([-+]{1,3}\)\s*$",                        # line ends with a bare zone suffix like (+++)
+    re.IGNORECASE,
+)
+
 
 def parse_referensi_standar(text_block):
     """
@@ -294,9 +315,83 @@ def parse_referensi_standar(text_block):
     text_block = re.sub(r"Referensi Standar\s*:", "", text_block, flags=re.IGNORECASE)
     text_block = re.sub(r"Laporan ujian",          "", text_block, flags=re.IGNORECASE)
 
+    # ── Orphan-name pre-pass ─────────────────────────────────────────────────
+    # pdfplumber sometimes splits a long parameter name + its zone data across
+    # multiple lines.  The exact pattern seen in the PDF for dg-lc:
+    #
+    #   [L1] 'Kofisien Fungsi Peristaltik Usus'   ← orphan: no colon, no zones
+    #   [L2] '4.572-6.483(-) 3.249-4.572(+)'      ← zone data (normal + ringan)
+    #   [L3] 'Besar:'                               ← name tail + colon, no zones
+    #   [L4] '2.031-3.249(++) <2.031(+++)'         ← zone data (sedang + berat)
+    #
+    # Without the fix the main loop captures only "Besar" with 2 zones.
+    # Fix: detect [L1, L2, L3] → rewrite as [L1+L3, L2] so the main loop sees:
+    #   'Kofisien Fungsi Peristaltik Usus Besar:'  ← full name + colon
+    #   '4.572-6.483(-) 3.249-4.572(+)'            ← continuation (all 4 zones follow)
+    #   '2.031-3.249(++) <2.031(+++)'
+    #
+    # Also handles the simpler 2-line case:
+    #   [L1] 'Name Fragment'                        ← no colon, no zones
+    #   [L2] 'Fragment2: zone_data'                 ← colon + zones on same line
+    # → merged into 'Name Fragment Fragment2: zone_data'
+
+    def _next_nonempty(lines, from_idx):
+        """Return (absolute_idx, stripped_text) of first non-empty line after from_idx."""
+        j = from_idx + 1
+        while j < len(lines):
+            s = lines[j].strip()
+            if s:
+                return j, s
+            j += 1
+        return None, None
+
+    raw_lines = text_block.splitlines()
+    preproc   = []
+    k = 0
+    while k < len(raw_lines):
+        ln = raw_lines[k].strip()
+        if not ln:
+            preproc.append(ln)
+            k += 1
+            continue
+
+        has_zone = bool(_ZONE_ENTRY_RE.search(ln))
+        is_name  = bool(_PARAM_NAME_RE.match(ln))
+        is_noise = bool(_RS_NOISE_RE.match(ln))
+
+        has_digit = bool(re.search(r'\d', ln))
+        if not has_zone and not is_name and not is_noise and not has_digit:
+            # Candidate orphan name fragment — look ahead
+            j1, l1 = _next_nonempty(raw_lines, k)
+            if l1 is not None:
+                l1_has_zone = bool(_ZONE_ENTRY_RE.search(l1))
+                l1_is_name  = bool(_PARAM_NAME_RE.match(l1))
+
+                # Simple case: orphan → next line has colon AND zones
+                if l1_is_name and l1_has_zone:
+                    preproc.append(ln + " " + l1)
+                    k = j1 + 1
+                    continue
+
+                # Complex case: orphan → zone_data_line → colon_only_line
+                # Zone data between the two name fragments belongs to this param.
+                if l1_has_zone and not l1_is_name:
+                    j2, l2 = _next_nonempty(raw_lines, j1)
+                    if (l2 is not None
+                            and _PARAM_NAME_RE.match(l2)
+                            and not _ZONE_ENTRY_RE.search(l2)):
+                        # Emit merged name first, then the interleaved zone data.
+                        preproc.append(ln + " " + l2)   # full name + colon
+                        preproc.append(l1)               # zone data (continuation)
+                        k = j2 + 1                       # resume after colon line
+                        continue
+
+        preproc.append(ln)
+        k += 1
+
     current_param = None
 
-    for line in text_block.splitlines():
+    for line in preproc:
         line = line.strip()
         if not line:
             continue
