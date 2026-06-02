@@ -307,6 +307,10 @@ function getModuleContextSentence(moduleId, lang) {
     skin: {
       en: 'Sustained sympathetic dominance elevates cortisol, which is associated with accelerated collagen turnover.',
       id: 'Dominasi simpatis yang berkelanjutan meningkatkan kortisol, yang dikaitkan dengan percepatan pergantian kolagen.'
+    },
+    digestive: {
+      en: 'The vagus nerve directly governs gut motility and digestive enzyme secretion. Low autonomic load index is associated with reduced peristalsis and impaired digestive transformation.',
+      id: 'Saraf vagus secara langsung mengatur motilitas usus dan sekresi enzim pencernaan. Indeks beban otonom yang rendah dikaitkan dengan penurunan peristaltik dan gangguan transformasi pencernaan.'
     }
   };
   return sentences[moduleId]?.[L] ?? '';
@@ -655,6 +659,7 @@ function renderHrvStrip_Metabolic() { _renderStrip('metabolic', 'hrv-strip-mt');
 function renderHrvStrip_Cardio()    { _renderStrip('cardio',    'hrv-strip-cr'); }
 function renderHrvStrip_Nutrient()  { _renderStrip('nutrient',  'hrv-strip-nt'); }
 function renderHrvStrip_Skin()      { _renderStrip('skin',      'hrv-strip-sk'); }
+function renderHrvStrip_Digestive() { _renderStrip('digestive', 'hrv-strip-dg'); }
 
 // =============================================================================
 // SECTION 8 — renderHrvPanel() orchestrator
@@ -668,6 +673,7 @@ function renderHrvPanel() {
   renderHrvStrip_Cardio();
   renderHrvStrip_Nutrient();
   renderHrvStrip_Skin();
+  renderHrvStrip_Digestive();
   if (!hrvState) return;
   renderHrvModule();
 }
