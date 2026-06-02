@@ -1,5 +1,7 @@
 # QRMA Health Screening Dashboard — Project Context for Claude Code
 
+Read PROJECT_MAP.md first before making any changes.
+
 ## Project Identity
 
 **Name:** QRMA Health Screening Dashboard  
