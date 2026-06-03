@@ -1,12 +1,11 @@
 # QRMA Dashboard — Project Master Map
-**Last updated:** 2026-06-02 → amended 2026-06-03 (v5.0 Module 9 Digestive complete)  
+**Last updated:** 2026-06-03 (v5 / Build 3-m9 Module 9 Digestive shipped; file inventory verified)  
 **Compiled from:** CLAUDE.md, CLAUDE_final.md, HANDOVER.md, CHANGELOG.md, hrv-flask-session-handover.md, hrv_logic_layer_handover.md, hrv-integration-next-ai-handover.md, current_run.yaml  
 **Purpose:** Single file an AI session or developer reads first. Replaces need to reconcile 5+ context docs.
 
-> ⚠️ **Unverified files** (exist on local disk, not in repo snapshot):  
-> `qrma-dashboard-v5.html`, `03_Scripts/server.py`, `03_Scripts/hrv-engine.js`,  
-> `03_Scripts/zone-scoring.js`, `03_Scripts/importer.js`, `03_Scripts/json_exporter.py`  
-> Sections referencing these are derived from design docs — treat as spec until verified against actual files.
+> ✅ **Verified 2026-06-03:** `qrma-dashboard-v5.html` (active), `qrma-dashboard-v4.html`, `server.py`,
+> `hrv-engine.js`, `zone-scoring.js`, `importer.js`, `json_exporter.py`, `csv_exporter_v2.py` all confirmed present.
+> `database.py` is DEPRECATED — not used in current development. (Files sit flat in repo root, not under `03_Scripts/`.)
 
 ---
 
@@ -30,10 +29,10 @@
 
 ```
 Date:          2026-06-03
-Active build:  v5.0 — COMPLETE (Module 9 Digestive shipped 2026-06-03)
+Active build:  Build 3-m9 — COMPLETE (Module 9 Digestive)
 Active HTML:   qrma-dashboard-v5.html
-Last QA:       Playwright headless QA — VERDICT: PASS (all 12 items)
-Next build:    Build 3b — Body comp manual input panel + cMt() rewrite
+Last QA:       run_ridwan_20260528  →  VERDICT: APPROVE (v4 baseline; v5/Module 9 not yet QA'd)
+Next build:    Build 3a (batch pipeline, see BUILD_3A_SPEC.md) · Build 3b (body comp)
 ```
 
 ### Build History (condensed)
@@ -46,7 +45,7 @@ Next build:    Build 3b — Body comp manual input panel + cMt() rewrite
 | 2026-05-31 | Build 1 | Complete ✓ | `server.py` + `qrma-dashboard-v4.html` (Flask + PDF drop zone) |
 | 2026-06-01 | Build 2 | Complete ✓ | `hrv-engine.js` + v4 HTML HRV layer (ALI, protocols, per-module strips) |
 | 2026-06-01 | Bug fix session | Complete | FIX 4 (nutrient deficient count), Bio Age pillar rescale + verbal labels |
-| 2026-06-03 | v5.0 — Module 9 | Complete ✓ | `qrma-dashboard-v5.html` — Digestive module, 9-axis radar, parser fixes |
+| 2026-06-03 | Build 3-m9 | Complete ✓ | Module 9 Gut/Digestive → `qrma-dashboard-v5.html` (cDg(), digestive section, calcAll/charts/buildAction extended to /7) |
 
 ---
 
@@ -56,30 +55,33 @@ Next build:    Build 3b — Body comp manual input panel + cMt() rewrite
 
 | File | Version | Role |
 |---|---|---|
-| `qrma-dashboard-v5.html` | v5 | **ACTIVE** single-file dashboard app — 9 modules ⚠️ not in repo snapshot |
-| `03_Scripts/server.py` | — | Flask microserver — PDF drop → pipeline → browser ⚠️ not in repo snapshot |
-| `03_Scripts/hrv-engine.js` | v1.1.0 | HRV logic module + renderHrvStrip_Digestive() ⚠️ not in repo snapshot |
-| `03_Scripts/zone-scoring.js` | v1.0 | Zone-to-score + language module ⚠️ not in repo snapshot |
-| `03_Scripts/importer.js` | v1.5.1 | JSON importer adapter (IIFE: QRMAImporter) ⚠️ not in repo snapshot |
+| `qrma-dashboard-v5.html` | v5 | **ACTIVE** single-file dashboard app (adds Module 9 Gut/Digestive) — file header still self-labels v4 |
+| `03_Scripts/server.py` | — | Flask microserver — PDF drop → pipeline → browser |
+| `03_Scripts/hrv-engine.js` | v1.0.2 | HRV logic module — ALI, protocols, renderHrvPanel() |
+| `03_Scripts/zone-scoring.js` | v1.0 | Zone-to-score + language module |
+| `03_Scripts/importer.js` | v1.5.1 | JSON importer adapter (IIFE: QRMAImporter) |
 | `03_Scripts/csv_exporter_v2.py` | v2 | PDF → CSV (imports from parser_v3) |
-| `03_Scripts/json_exporter.py` | — | CSV → JSON payload for browser ⚠️ not in repo snapshot |
-| `03_Scripts/parser_v3.py` | v3 | PDF → raw values + zone derivation + SQLite — updated: orphan-name fix + higher-worse inversion |
-| `03_Scripts/mappings.json` | current | Indonesian PDF name → dashboard field ID — updated: 9 dg-* fields mapped |
-| `database.py` | stable | SQLAlchemy models — **do not rename, shared with another dev** |
+| `03_Scripts/json_exporter.py` | — | CSV → JSON payload for browser |
+| `03_Scripts/parser_v3.py` | v3 | PDF → raw values + zone derivation + SQLite |
+| `03_Scripts/mappings.json` | current | Indonesian PDF name → dashboard field ID (bilingual) |
+| `database.py` | — | **DEPRECATED** — not used in current development |
 
-**Script load order in `<head>` — must be preserved:**
+**Script load order in `<head>` — as shipped in v5:**
 ```html
 <script src="03_Scripts/zone-scoring.js"></script>
-<script src="03_Scripts/importer.js"></script>
 <script src="03_Scripts/hrv-engine.js"></script>
+<script src="03_Scripts/importer.js"></script>
 <!-- inline <script> block last -->
 ```
+> ⚠️ Note: v5 loads `hrv-engine` before `importer` — the reverse of the v4-era documented order
+> (`zone-scoring → importer → hrv-engine`). Left as-is per owner decision; no functional issue observed.
+> Confirm before changing.
 
 ### 3.2 Superseded Files (keep, do not use)
 
 | File | Reason |
 |---|---|
-| `qrma-dashboard-v4.html` | Superseded by v5 |
+| `qrma-dashboard-v4.html` | Superseded by v5 (Module 9 added) — last QA-approved HTML; keep as fallback |
 | `qrma-dashboard-v3.html` | Superseded by v4 |
 | `qrma-dashboard-v2.html` | Superseded by v3/v4 |
 | `parser.py` | Original — no mapping layer, no zone support |
@@ -102,8 +104,6 @@ Next build:    Build 3b — Body comp manual input panel + cMt() rewrite
 | `current_run.yaml` | Single-run SSOT for Operator/Tester/Reviewer QA workflow |
 | `CHANGELOG.md` | Authoritative build history |
 | `QRMA_SKILL_dashboard_operator.md` | Operator QA role definition and walkthrough |
-| `MODULE_9_DIGESTIVE_SPEC.md` | Full Module 9 spec — field definitions, cDg() logic, sub-indices, parser rules, HRV integration, alert language |
-| `Logic_Layer_Specification_Document__QRMA-GDV_Health_Intelligence_Engine.docx` | Future v6.0 architecture — QRMA + GDV dual-instrument engine, TCM patterns, AI narrative. Not applicable until GDV integrated. |
 | `PROJECT_MAP.md` | **This file** |
 
 ### 3.4 Versioning Rules
@@ -121,7 +121,7 @@ Next build:    Build 3b — Body comp manual input panel + cMt() rewrite
 ### 4.1 Full Pipeline (with Flask)
 
 ```
-Operator drops PDF onto qrma-dashboard-v5.html drop zone
+Operator drops PDF onto qrma-dashboard-v4.html drop zone
   ↓
 POST /upload  →  03_Scripts/server.py  (Flask, port 5000)
   ↓
@@ -137,7 +137,6 @@ importer.js: QRMAImporter.importFromPayload()
   → populates window.zoneData + DOM field IDs
   ↓
 calcAll()   (score orchestrator)
-  → cBioAge, cOx, cTx, cMt, cCr, cNt, cSk, cDg
   ↓
 renderHrvPanel()   (HRV post-pass, no-op if hrvState is null)
   ↓
@@ -167,9 +166,7 @@ Reversing this order causes `NameError`. This is a known bug pattern.
 | `parser_v3.py` UnicodeEncodeError on Windows cp1252 | Open | Affects console output only, not data |
 | `mt-bmi` / `mt-wc` permanent PDF gaps | By design | Section headings in PDF — require manual input panel (Build 3b) |
 | Body comp fields `bc-*` not yet in scoring | By design | Scoring spec locked (§5.7) — implementation in Build 3b |
-| Debug logs in v5 HTML | Deferred | Retained intentionally during dev; remove before production release |
-| `parser_v3.py` orphan-name truncation | **Fixed v5.0** | Multi-line PDF param names now merged correctly — dg-lc was affected |
-| `parser_v3.py` higher-worse zone inversion | **Fixed v5.0** | dg-ip and any future higher-worse fields now zone correctly |
+| Debug logs in v4 HTML | Deferred | Retained intentionally during dev; remove before production release |
 
 ---
 
@@ -183,16 +180,15 @@ Reversing this order causes `NameError`. This is a known bug pattern.
 | 2 | `oxidative` | Risk ↑ worse | Exploratory | `ox-gsh, ox-coq, ox-vc, ox-ve, ox-sel, ox-fr, ox-hyp, ox-ph` |
 | 3 | `toxic` | Risk ↑ worse | Needs lab confirm | `tx-pb, tx-hg, tx-cd, tx-as, tx-st, tx-tb, tx-ps` |
 | 4 | `metabolic` | Risk ↑ worse | Well-supported | `mt-tg, mt-ug, mt-ins, mt-fm, mt-bmi*, mt-wc*, bc-fat*, bc-vf*, bc-muscle*, bc-bmr*, bc-whr*` |
-| 5 | `digestive` | Risk ↑ worse | Exploratory | `dg-lp, dg-la, dg-sp, dg-sa, dg-lc, dg-ca, dg-bi, dg-ip†, dg-ds` |
-| 6 | `cardio` | Risk ↑ worse | Needs lab confirm | `cr-ch, cr-vf, cr-lv, cr-ua, cr-pt, cr-k, cr-mg` |
-| 7 | `nutrient` | Resilience ↑ better | Exploratory | `nt-zn, nt-mg, nt-k, nt-io, nt-si, nt-b6, nt-vc, nt-d3, nt-ve, nt-fo` |
-| 8 | `skin` | Resilience ↑ better | Exploratory | `sk-sc, sk-el, sk-tw‡, sk-sb, sk-ml, sk-sn, sk-ec, sk-jc` |
-| 9 | `action` | Aggregated output | Inherits | Output layer only — no direct inputs |
+| 5 | `cardio` | Risk ↑ worse | Needs lab confirm | `cr-ch, cr-vf, cr-lv, cr-ua, cr-pt, cr-k, cr-mg` |
+| 6 | `nutrient` | Resilience ↑ better | Exploratory | `nt-zn, nt-mg, nt-k, nt-io, nt-si, nt-b6, nt-vc, nt-d3, nt-ve, nt-fo` |
+| 7 | `skin` | Resilience ↑ better | Exploratory | `sk-sc, sk-el, sk-tw†, sk-sb, sk-ml, sk-sn, sk-ec, sk-jc` |
+| 8 | `action` | Aggregated output | Inherits | Output layer only — no direct inputs |
+| 9 | `digestive` | Risk ↑ worse | Exploratory | `dg-lp, dg-la, dg-sp, dg-sa, dg-lc, dg-ca, dg-bi, dg-ip, dg-ds` (+ `dg-redflag` alarm-symptom gate). NEW in v5 — see `MODULE_9_DIGESTIVE_SPEC.md` |
 | HRV | `hrv` | ALI (0–100) | Independent domain | `rmssd, meanHr, sdnn, lnRmssd, durationSec, artifactPct` |
 
-`*` permanent gaps / manual-input-only fields — never extractable from QRMA PDF.  
-`†` `dg-ip` direction is higher-worse — zone derivation inverted in parser_v3.py. Ridwan: 3.206 → sedang.  
-`‡` direction ambiguity — flagged, under investigation
+`*` permanent gaps / manual-input-only fields — never extractable from QRMA PDF. `mt-bmi` and `mt-wc` feed `cMt()` scoring. `bc-*` fields stored as session metadata now; will feed scoring when scoring spec is implemented (see Section 5.7).  
+`†` direction ambiguity — flagged, under investigation
 
 ### 5.2 Scoring Functions
 
@@ -204,7 +200,7 @@ cMt()       // gc (glycemic) + lp (lipid) + bc (body comp — adaptive weight, s
 cCr()       // cai (cardiac) + ri (renal)
 cNt()       // resilience — avg zone score × 10 nutrients
 cSk()       // resilience — cl (collagen) + bf (barrier) + sn
-cDg()       // mt (motility 40%) + ab (absorption 35%) + pi (pressure 25%) — see §5.8
+cDg()       // digestive — motility .40 + absorption .35 + pressure .25; redFlag gate; pattern detectors (v5)
 calcAll()   // master orchestrator — calls all above, then renderHrvPanel()
 ```
 
@@ -257,67 +253,14 @@ Verbal burden labels (bilingual):
 
 | Patient | Gender | Fields | Zones | Bio Age | Console |
 |---|---|---|---|---|---|
-| Ridwan | Male | 71/73 | 71/71 | 42y (+2y) | Clean |
+| Ridwan | Male | 62/64 | 62/62 | 42y (+2y) | Clean |
 | Kamiyanti | Female | 62/64 | 62/62 | 43y (+2y) | Clean |
 | Frans | — | — | — | 53y (+6y) | Clean |
 
-**v5.0 digestive baseline (Ridwan) — confirmed correct, do not re-open:**
-- `dg-lp = 55.724` → sedang (gastric peristalsis moderately reduced)
-- `dg-la = 34.531` → normal
-- `dg-sp = 132.189` → ringan
-- `dg-sa = 3.154` → ringan (PDF zone table — not berat, spec estimate was wrong)
-- `dg-lc = 3.771` → ringan (fixed by orphan-name pre-pass)
-- `dg-ca = 1.942` → ringan (PDF zone table — not berat, spec estimate was wrong)
-- `dg-bi = 1.511` → ringan
-- `dg-ip = 3.206` → sedang (higher-worse, fixed by zone inversion in parser)
-- `dg-ds = 3.607` → normal
-- Gut Score: 50% — Monitor band ✓
-
-**Previously confirmed — do not re-open:**
+**Confirmed correct — do not re-open:**
 - `sk-sc = 2.69` → "sedang" (berat threshold is < 1.453)
 - `ox-sel` → "normal" (v2 threshold was wrong; v3 zone-based is correct)
 - `tx-pb = 0.144` → "normal" (PDF range 0.052–0.643; prior "sedang" baseline was incorrect)
-
-### 5.8 Digestive Function — Scoring Spec (cDg())
-
-**Status:** COMPLETE — shipped v5.0 (2026-06-03).  
-**Full spec:** `MODULE_9_DIGESTIVE_SPEC.md`
-
-#### Sub-index structure
-
-| Sub-index | Fields | Weight |
-|---|---|---|
-| A — Motility / Transit | dg-lp, dg-sp, dg-lc | 40% |
-| B — Absorption / Environment | dg-la, dg-sa, dg-ca, dg-bi | 35% |
-| C — Pressure / Integrity | dg-ip (×1.5), dg-ds (×0.5) | 25% |
-
-#### Ridwan baseline scores (v5.0 QA confirmed)
-
-| Sub-index | Score | Interpretation |
-|---|---|---|
-| Motility | 56% | Monitor — broad mild peristaltic reduction |
-| Absorption | 36% | Monitor — absorption mildly reduced across gut |
-| Pressure | 61% | Monitor — dg-ip sedang drives this sub-index |
-| **Overall Gut Score** | **50%** | **Monitor band** |
-
-#### Pattern flags (fire when co-occurrence thresholds met)
-
-| Flag | Condition | Ridwan |
-|---|---|---|
-| Bloating + Reduced Transit | dg-ip ≥ sedang AND dg-lc ≥ sedang | No — dg-lc ringan |
-| Upper GI Digestion Strain | dg-lp ≥ sedang AND dg-sa ≥ sedang | No — dg-sa ringan |
-| Absorption Deficit | dg-sa = berat OR dg-ca = berat | No — both ringan |
-
-#### Parser fixes shipped with v5.0
-
-- **Orphan-name pre-pass** — fixes multi-line PDF parameter names being truncated (was: `Besar:` only, now: full `Kofisien Fungsi Peristaltik Usus Besar`)
-- **Higher-worse zone inversion** — fields with `"direction": "higher-worse"` in mappings.json now correctly map elevated values to worse zones (ratio-based: 1.00–1.25× → ringan, 1.25–1.60× → sedang, >1.60× → berat)
-
-#### HRV context sentence (digestive)
-
-"The vagus nerve directly governs gut motility and digestive enzyme secretion. Low autonomic load index is associated with reduced peristalsis and impaired digestive transformation."
-
----
 
 ### 5.7 Body Composition — Scoring Spec (cMt() Addendum)
 
@@ -635,7 +578,6 @@ Only current band protocols shown. No deferred protocols. No "coming soon."
 | Cardio-Renal | "RMSSD reflects current cardiac autonomic balance. Reduced HRV is an independent cardiovascular risk marker." |
 | Nutrients | "Adequate vagal tone is required for optimal digestive enzyme output and nutrient absorption." |
 | Skin/Collagen | "Sustained sympathetic dominance elevates cortisol, which is associated with accelerated collagen turnover." |
-| Gut/Digestive | "The vagus nerve directly governs gut motility and digestive enzyme secretion. Low autonomic load index is associated with reduced peristalsis and impaired digestive transformation." |
 
 Empty state (no HRV data): `"No HRV data available for this session."` — single line only.
 
@@ -696,15 +638,6 @@ These rules must survive every change, refactor, or new feature without exceptio
 - "Heart attack chance"
 - "Kidney failure risk" (unless from a validated external calculator, clearly separated)
 
-### Digestive module — additional forbidden phrases
-- "You have IBS" → use "Pattern suggests functional gut sensitivity"
-- "Leaky gut" → use "Intestinal barrier pattern"
-- "Dysbiosis confirmed" → use "Intestinal bacteria balance pattern"
-- "Candida overgrowth" → do not mention — not a QRMA output
-- "Detox your gut" → use "Support digestive function through…"
-- "You are constipated" → use "Reduced transit pattern"
-- Any mention of inflammatory bowel disease → only under red flag: "requires clinical evaluation"
-
 ---
 
 ## 9. OPEN BACKLOG
@@ -728,7 +661,6 @@ Consolidated from all CHANGELOG deferred blocks. Ordered by estimated priority.
 | B13 | **parser_v3.py UnicodeEncodeError on Windows cp1252** | Affects console output only, not data | Low priority |
 | B14 | **body_comp_batch.csv template + batch_runner.py extension** | Parallel to HRV batch path — batch_runner merges body_comp block from CSV | Build 3c |
 | B15 | **Device import parsers (InBody, Xiaomi)** | Each device → normalise to body_comp block; source dropdown gains new options; zero UI changes | Build 4+ |
-| B16 | **GDV integration layer (v6.0)** | Dual-instrument session JSON schema, GDV parser, correlation rules engine (CR-001 to CR-024), TCM pattern activation, AI narrative generation via Claude API. Spec: Logic_Layer_Specification_Document. | v6.0 |
 
 ---
 
@@ -760,7 +692,7 @@ Read `current_run.yaml` first. Fields used:
 
 ### 10.3 Quality Gates (Tester blocking rules)
 
-- All 8 modules calculate without JS errors
+- All 9 modules calculate without JS errors (Module 9 Digestive added v5)
 - Dashboard summary updates when module scores change
 - Confidence badges visible on all module pages
 - No diagnostic output anywhere
