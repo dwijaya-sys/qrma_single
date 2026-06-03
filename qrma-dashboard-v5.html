@@ -1250,6 +1250,10 @@ function exportSessionReport() {
   const skScore = txt('r-sks').replace('%','');  const skLabel = txt('r-skl');
   const skCli   = parseInt(txt('r-cli')) || 0;
   const skBfi   = parseInt(txt('r-bfi')) || 0;
+  const dgScore = txt('r-dgs').replace('%','');  const dgLabel = txt('r-dgl');
+  const dgMt    = parseInt(txt('r-dgmt')) || 0;
+  const dgAb    = parseInt(txt('r-dgab')) || 0;
+  const dgPi    = parseInt(txt('r-dgpi')) || 0;
 
   // ── Worst zone per module ─────────────────────────────────
   const zd = window.zoneData || {};
@@ -1266,7 +1270,8 @@ function exportSessionReport() {
     mt: worstZone(['mt-tg','mt-ug','mt-ins','mt-fm','mt-bmi','mt-wc']),
     cr: worstZone(['cr-ch','cr-vf','cr-lv','cr-ua','cr-pt','cr-k','cr-mg']),
     nt: worstZone(['nt-zn','nt-mg','nt-k','nt-io','nt-si','nt-b6','nt-vc','nt-d3','nt-ve','nt-fo']),
-    sk: worstZone(['sk-sc','sk-el','sk-tw','sk-sb','sk-ml','sk-sn','sk-ec','sk-jc'])
+    sk: worstZone(['sk-sc','sk-el','sk-tw','sk-sb','sk-ml','sk-sn','sk-ec','sk-jc']),
+    dg: worstZone(['dg-lp','dg-la','dg-sp','dg-sa','dg-lc','dg-ca','dg-bi','dg-ip','dg-ds'])
   };
 
   // ── Alert extraction ──────────────────────────────────────
@@ -1321,6 +1326,17 @@ function exportSessionReport() {
   if (!skLines.length) skLines.push('- Skin and collagen markers within reference range.');
   const skFindings = skLines.join('\n') + '\n';
 
+  // Digestive
+  const dgLines = [];
+  const dgS = parseInt(dgScore)||0;
+  if (dgS > 60) dgLines.push(`- **Significant digestive pattern** (${dgScore}%): Multiple digestive function signals below reference range. Motility ${dgMt}% / Absorption ${dgAb}% / Pressure ${dgPi}%. Clinical dietary review recommended.`);
+  else if (dgS > 30) dgLines.push(`- **Moderate digestive pattern** (${dgScore}%): Digestive function signals warrant monitoring. Motility ${dgMt}% / Absorption ${dgAb}% / Pressure ${dgPi}%.`);
+  if (dgAb > 40) dgLines.push('- Absorption sub-index flagged: consider reviewing Vitamin B12, ferritin, and 25-OH Vitamin D status.');
+  if (dgMt > 50) dgLines.push('- Motility sub-index flagged: peristaltic signals below reference range across gastric and/or intestinal segments.');
+  if (dgPi > 40) dgLines.push('- Pressure / integrity sub-index flagged: intraluminal pressure pattern above reference range.');
+  if (!dgLines.length) dgLines.push('- Digestive function markers within reference range.');
+  const dgFindings = dgLines.join('\n') + '\n';
+
   // ── Action plan extraction ────────────────────────────────
   function extractTestsTable() {
     const el = document.getElementById('r-acttbl');
@@ -1366,16 +1382,19 @@ function exportSessionReport() {
   const rawScores = {
     ox: parseInt(oxScore)||0, tx: parseInt(txScore)||0,
     mt: parseInt(mtScore)||0, cr: parseInt(crScore)||0,
-    nt: parseInt(ntScore)||0, sk: parseInt(skScore)||0
+    nt: parseInt(ntScore)||0, sk: parseInt(skScore)||0,
+    dg: parseInt(dgScore)||0
   };
   const domainNames = {
     ba:'Biological Age', ox:'Oxidative Stress', tx:'Toxic Burden',
-    mt:'Metabolic Risk', cr:'Cardio-Renal',     nt:'Nutrient Sufficiency', sk:'Skin & Collagen'
+    mt:'Metabolic Risk', cr:'Cardio-Renal',     nt:'Nutrient Sufficiency',
+    sk:'Skin & Collagen', dg:'Gut / Digestive'
   };
   const priorityDomains = [
     ['ba', baSyntheticScore], ['ox', rawScores.ox], ['tx', rawScores.tx],
     ['mt', rawScores.mt],     ['cr', rawScores.cr],
-    ['nt', 100 - rawScores.nt], ['sk', 100 - rawScores.sk]
+    ['nt', 100 - rawScores.nt], ['sk', 100 - rawScores.sk],
+    ['dg', rawScores.dg]
   ].sort((a,b) => b[1]-a[1]).slice(0,3).map(([k]) => domainNames[k]);
 
   // ── Executive summary ─────────────────────────────────────
@@ -1447,7 +1466,9 @@ ${HRV_BAND_DESC[band] || 'Autonomic status recorded.'}
       metabolic: { score: parseInt(mtScore)||0, label: mtLabel,       zone: zones.mt },
       cardio:    { score: parseInt(crScore)||0, label: crLabel,       zone: zones.cr },
       nutrient:  { score: parseInt(ntScore)||0, label: ntLabel,       zone: zones.nt },
-      skin:      { score: parseInt(skScore)||0, label: skLabel,       zone: zones.sk }
+      skin:      { score: parseInt(skScore)||0, label: skLabel,       zone: zones.sk },
+      digestive: { score: parseInt(dgScore)||0, label: dgLabel,       zone: zones.dg,
+                   sub_scores: { motility: dgMt, absorption: dgAb, pressure: dgPi } }
     },
     priority_domains: priorityDomains,
     action_plan: {
@@ -1485,6 +1506,7 @@ ${HRV_BAND_DESC[band] || 'Autonomic status recorded.'}
     _mRow('Cardio-Renal',     parseInt(crScore)||0, crLabel,       zones.cr),
     _mRow('Nutrient',         parseInt(ntScore)||0, ntLabel,       zones.nt),
     _mRow('Skin & Collagen',  parseInt(skScore)||0, skLabel,       zones.sk),
+    _mRow('Gut / Digestive',  parseInt(dgScore)||0, dgLabel,       zones.dg),
     '',
     'PRIORITY DOMAINS',
     ...priorityDomains.map((d, i) => '  ' + (i + 1) + '. ' + d),
@@ -1549,6 +1571,11 @@ ${ntFindings}
 **Score:** ${skScore}/100 | **Status:** ${skLabel} | **Zone:** ${zones.sk}
 **Findings:**
 ${skFindings}
+### 8. Gut / Digestive Function
+**Score:** ${dgScore}/100 | **Status:** ${dgLabel} | **Zone:** ${zones.dg}
+**Sub-scores:** Motility ${dgMt}% | Absorption ${dgAb}% | Pressure/Integrity ${dgPi}%
+**Findings:**
+${dgFindings}
 ---
 
 ## Action Plan
@@ -1565,7 +1592,7 @@ ${hiAlertsMd}
 
 ## Context for AI System
 
-This report is generated by the USAKA Health Screening Dashboard, which processes QRMA bioresonance device output into 7 domain scores. Scores are derived from PDF-extracted biomarker values mapped against reference standards. This screening is non-diagnostic and is intended to complement TCM clinical assessment. The 7 module scores and HRV autonomic data below should be read alongside the practitioner's TCM diagnosis to build an individualized health program.
+This report is generated by the USAKA Health Screening Dashboard, which processes QRMA bioresonance device output into 8 domain scores. Scores are derived from PDF-extracted biomarker values mapped against reference standards. This screening is non-diagnostic and is intended to complement TCM clinical assessment. The 8 module scores and HRV autonomic data below should be read alongside the practitioner's TCM diagnosis to build an individualized health program.
 ${hrvSection}
 ---
 
