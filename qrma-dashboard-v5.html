@@ -1,10 +1,10 @@
-<!-- qrma-dashboard-v4.html -->
+<!-- qrma-dashboard-v5.html -->
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Swasthya Usadha — Health Screening Dashboard V4.0</title>
+  <title>Swasthya Usadha — Health Screening Dashboard V5.0</title>
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=cabinet-grotesk@400,500,700,800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -298,7 +298,7 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
       <!-- Thin gold ring -->
       <circle cx="16" cy="16" r="15.5" stroke="#C9A020" stroke-width="1" fill="none"/>
     </svg>
-    <h1>Swasthya Usadha <span>USAKA WELLNESS Dashboard V4.0</span></h1>
+    <h1>Swasthya Usadha <span>USAKA WELLNESS Dashboard V5.0</span></h1>
   </div>
   <div class="topbar-r">
     <span class="pill">For Reference Only &middot; Not a Diagnosis</span>
@@ -1439,7 +1439,7 @@ ${HRV_BAND_DESC[band] || 'Autonomic status recorded.'}
   // ── JSON data summary ─────────────────────────────────────
   const dataSummaryJson = JSON.stringify({
     patient: { name, age: parseInt(age)||null, gender: gender.toLowerCase(), test_date: testDate },
-    session: { dashboard_version: 'v4', export_timestamp: timestamp },
+    session: { dashboard_version: 'v5', export_timestamp: timestamp },
     modules: {
       bio_age:   { score: baSyntheticScore,    label: baStatusLabel, zone: zones.ba },
       oxidative: { score: parseInt(oxScore)||0, label: oxLabel,       zone: zones.ox },
@@ -1474,7 +1474,7 @@ ${HRV_BAND_DESC[band] || 'Autonomic status recorded.'}
     '  ' + _p('Test Date', 12) + ': ' + testDate,
     '',
     'SESSION',
-    '  ' + _p('Dashboard', 12) + ': v4',
+    '  ' + _p('Dashboard', 12) + ': v5',
     '  ' + _p('Exported',  12) + ': ' + timestamp,
     '',
     'MODULE SCORES',
@@ -1508,7 +1508,7 @@ ${HRV_BAND_DESC[band] || 'Autonomic status recorded.'}
 
 # USAKA Health Screening Report
 **Patient:** ${name} | **Age:** ${age} | **Gender:** ${gender} | **Test Date:** ${testDate}
-**Export:** ${timestamp} | **Dashboard:** qrma-dashboard-v4
+**Export:** ${timestamp} | **Dashboard:** qrma-dashboard-v5
 
 ---
 
