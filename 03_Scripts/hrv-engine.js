@@ -321,6 +321,7 @@ function getModuleContextSentence(moduleId, lang) {
 // =============================================================================
 
 let hrvState = null;
+window.hrvState = null;  // bridge: exportSessionReport() reads window.hrvState
 
 // =============================================================================
 // SECTION 4 — ingestHrv()
@@ -365,6 +366,7 @@ function ingestHrv() {
     readinessBand:      aliBand(ali)
   };
 
+  window.hrvState = hrvState;  // keep window in sync for exportSessionReport()
   if (typeof renderHrvPanel === 'function') renderHrvPanel();
 }
 
