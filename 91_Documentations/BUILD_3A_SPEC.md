@@ -606,6 +606,11 @@ The `"hrv"` and `"body_comp"` keys added to session JSON are forward-compatible 
 
 Build 3b is the dashboard half: body comp manual panel + cMt() rewrite + HRV ingest from payload + batch queue UI. Build 3b should be built **after** Build 3a is validated with real PDFs.
 
+**B4 + B5 status (export report):** COMPLETE as of 2026-06-03.
+- HRV block appears in MD + TXT exports when `hrvState` is populated
+- FIX 5: `window.hrvState` bridge added to `hrv-engine.js` v1.1.3
+- All 8 modules + HRV + Digestive verified in both export formats via Playwright
+
 Read in this order before starting Build 3b:
 1. `PROJECT_MAP.md` — current state, especially §5.7 (body comp scoring spec)
 2. `BUILD_3A_SPEC.md` — this file, §7 (Build 3b contract)

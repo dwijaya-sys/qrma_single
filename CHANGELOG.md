@@ -477,3 +477,75 @@ renderHrvPanel() called after calcAll() completes.
 ### Files Modified
 - 03_Scripts/hrv-engine.js — v1.1.2
 - qrma-dashboard-v4.html — CSS additions
+
+---
+
+## 2026-06-03 — Bug Fix: HRV Export State Isolation (hrv-engine.js v1.1.3)
+
+### Status: SHIPPED ✓
+
+### FIX 5 — window.hrvState not reachable from exportSessionReport()
+
+**Root cause:**
+`hrv-engine.js` declared `let hrvState = null` at the top of its script block.
+In browsers, `let` and `const` at script scope are NOT added as properties of
+`window`. This meant `window.hrvState` (used by `exportSessionReport()` in the
+main inline script) was always `undefined`, regardless of whether the operator
+had clicked Load HRV. The HRV Autonomic Status section was silently omitted
+from every MD and TXT export since Build 2 shipped.
+
+The bug was undetected because `renderHrvPanel()` — called from within
+`hrv-engine.js` scope — reads the `let` variable directly and rendered
+correctly on screen. Only the export path was broken.
+
+**Discovered via:** Playwright end-to-end export verification session (2026-06-03).
+
+**Fix — 2 surgical lines added to `03_Scripts/hrv-engine.js` (Section 3 + Section 4):**
+
+```javascript
+// Section 3 — State (line 323)
+let hrvState = null;
+window.hrvState = null;  // bridge: exportSessionReport() reads window.hrvState
+
+// Section 4 — ingestHrv() (end of assignment block, before renderHrvPanel call)
+window.hrvState = hrvState;  // keep window in sync for exportSessionReport()
+```
+
+No logic changed. `ingestHrv()`, `renderHrvPanel()`, and all pure functions
+remain identical. Only the window bridge lines are new.
+
+### Verification — Playwright automation (both formats)
+
+Test scripts: `03_Scripts/hrv_export_test.py` · `03_Scripts/hrv_export_txt_test.py`
+Patient: Ridwan 2025-11-10 | HRV input: RMSSD=28, HR=74, SDNN=42, Duration=300s, Artifact=2.1%
+
+**MD format (`hrv_test_export.md`) — 10/10 checks PASS:**
+- `## HRV — Autonomic Status` section present
+- ALI Band: low (correct for RMSSD=28)
+- RMSSD: 28 ms · HR: 74 bpm shown
+- Recovery State: guarded
+- Recommended Practices: V1, V2, V3, V4 (correct for low band)
+- JSON block: `"hrv": { "present": true, "ali_band": "low", "rmssd": 28, "mean_hr": 74, "quality": "pass" }`
+
+**TXT format (`hrv_test_export.txt`) — 11/12 checks PASS:**
+- All MD checks above confirmed in plain-text form
+- `HRV Present: Yes` line present in MODULE SCORES summary block
+- ALI Band / RMSSD / HR / Quality lines all present with correct values
+- One expected non-failure: `## HRV — Autonomic Status` heading is converted
+  to `HRV — AUTONOMIC STATUS` by `mdToTxt()` — correct behaviour, not a bug
+
+### ALI computation note
+`autonomicLoadIndex` for RMSSD=28, HR=74: **60** (hrv-engine.js `computeALI()`).
+This places the reading at the top of the `low` band (boundary with `adaptive`),
+consistent with the 25–49 ALI → low band rule (ALI 60 → adaptive band by index,
+but RMSSD 28 ms → `low` band by RMSSD threshold, which governs `rmssdBand`).
+`rmssdBand` is what exportSessionReport() uses for protocol selection.
+
+### Files Modified
+- `03_Scripts/hrv-engine.js` — v1.1.3 (two lines added)
+
+### Files Created (QA artefacts — not production)
+- `03_Scripts/hrv_export_test.py` — MD export automation + verification
+- `03_Scripts/hrv_export_txt_test.py` — MD + TXT regression harness
+- `01_Data/hrv_test_export.md` — last MD export test output
+- `01_Data/hrv_test_export.txt` — last TXT export test output

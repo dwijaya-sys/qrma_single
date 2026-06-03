@@ -1,5 +1,5 @@
 # QRMA Dashboard — Project Master Map
-**Last updated:** 2026-06-03 (v5 / Build 3-m9 Module 9 Digestive shipped; file inventory verified)  
+**Last updated:** 2026-06-03 (FIX 5 — window.hrvState export bridge; HRV export verified MD + TXT)  
 **Compiled from:** CLAUDE.md, CLAUDE_final.md, HANDOVER.md, CHANGELOG.md, hrv-flask-session-handover.md, hrv_logic_layer_handover.md, hrv-integration-next-ai-handover.md, current_run.yaml  
 **Purpose:** Single file an AI session or developer reads first. Replaces need to reconcile 5+ context docs.
 
@@ -32,6 +32,8 @@ Date:          2026-06-03
 Active build:  Build 3-m9 — COMPLETE (Module 9 Digestive)
 Active HTML:   qrma-dashboard-v5.html
 Last QA:       run_ridwan_20260528  →  VERDICT: APPROVE (v4 baseline; v5/Module 9 not yet QA'd)
+Last hotfix:   2026-06-03 FIX 5 — window.hrvState bridge in hrv-engine.js v1.1.3
+               HRV export verified end-to-end: MD ✓ TXT ✓ (Playwright, patient: Ridwan)
 Next build:    Build 3a (batch pipeline, see BUILD_3A_SPEC.md) · Build 3b (body comp)
 ```
 
@@ -57,7 +59,7 @@ Next build:    Build 3a (batch pipeline, see BUILD_3A_SPEC.md) · Build 3b (body
 |---|---|---|
 | `qrma-dashboard-v5.html` | v5 | **ACTIVE** single-file dashboard app (adds Module 9 Gut/Digestive) — file header still self-labels v4 |
 | `03_Scripts/server.py` | — | Flask microserver — PDF drop → pipeline → browser |
-| `03_Scripts/hrv-engine.js` | v1.0.2 | HRV logic module — ALI, protocols, renderHrvPanel() |
+| `03_Scripts/hrv-engine.js` | v1.1.3 | HRV logic module — ALI, protocols, renderHrvPanel(); window.hrvState bridge added (FIX 5) |
 | `03_Scripts/zone-scoring.js` | v1.0 | Zone-to-score + language module |
 | `03_Scripts/importer.js` | v1.5.1 | JSON importer adapter (IIFE: QRMAImporter) |
 | `03_Scripts/csv_exporter_v2.py` | v2 | PDF → CSV (imports from parser_v3) |
@@ -167,6 +169,7 @@ Reversing this order causes `NameError`. This is a known bug pattern.
 | `mt-bmi` / `mt-wc` permanent PDF gaps | By design | Section headings in PDF — require manual input panel (Build 3b) |
 | Body comp fields `bc-*` not yet in scoring | By design | Scoring spec locked (§5.7) — implementation in Build 3b |
 | Debug logs in v4 HTML | Deferred | Retained intentionally during dev; remove before production release |
+| `window.hrvState` not set by `ingestHrv()` — HRV block missing from all exports | **Fixed 2026-06-03** | `let hrvState` (script scope) bridged to `window.hrvState` in hrv-engine.js v1.1.3. Both MD and TXT exports verified via Playwright. |
 
 ---
 
@@ -779,6 +782,7 @@ EVENT LISTENERS         DOMContentLoaded, theme toggle, language toggle
 8. `SCRIPT_DIR` must be defined before `sys.path.insert` before any project imports in every Python script.
 9. Windows shell limitation: cannot run multi-line `python -c` commands — wrap into a single line or write to a `.py` file first.
 10. When in doubt about current state, check `CHANGELOG.md` — it is the most reliable timeline.
+11. **window bridge rule:** Any variable in `hrv-engine.js` that must be readable from the main inline script (e.g. `exportSessionReport`) must be explicitly mirrored to `window`. `let`/`const` at script scope are NOT on `window`. Pattern: declare with `let x = null; window.x = null;` and sync with `window.x = x;` after every mutation.
 
 ---
 

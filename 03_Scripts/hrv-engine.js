@@ -1,7 +1,7 @@
 // =============================================================================
 // hrv-engine.js
-// Version: 1.1.2
-// Date: 2026-06-01
+// Version: 1.1.3
+// Date: 2026-06-03
 // Purpose: HRV Autonomic Load Layer for the QRMA Usaka dashboard.
 //          Computes ALI, classifies autonomic state, selects micro-protocols,
 //          and renders the HRV sidebar module and per-module strips.
