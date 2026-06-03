@@ -812,6 +812,26 @@ def apply_mappings(parsed_items, primary_lookup, ref_standards):
         if has_zone_data:
             zone_label = derive_zone(raw_value, param_zones)
 
+            # Higher-worse severity override (Tier 1 only):
+            # The PDF's ringan band for higher-worse fields is often wide, covering
+            # values that the multiplier-based severity scale would grade as sedang.
+            # When mappings.json marks the field as "higher-worse" and derive_zone()
+            # returned "ringan", regrade using multiples of the normal-range ceiling:
+            #   1.00x – 1.25x → ringan   (mildly elevated)
+            #   1.25x – 1.60x → sedang   (moderately elevated)
+            #   > 1.60x       → berat    (severely elevated)
+            if zone_label == "ringan" and entry.get("direction") == "higher-worse":
+                _nrm = param_zones.get("normal")
+                if _nrm:
+                    _hi = _nrm[1]
+                    if raw_value > _hi:
+                        ratio = raw_value / _hi
+                        if ratio > 1.60:
+                            zone_label = "berat"
+                        elif ratio > 1.25:
+                            zone_label = "sedang"
+                        # else: 1.00–1.25× → stays "ringan"
+
             # Direction extension (Tier 1 — ref_standards path):
             # If value falls outside all extracted zone ranges, apply safe-floor rule.
             # higher-worse: value < normal floor  → below floor = safer → "normal"

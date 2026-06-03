@@ -642,14 +642,6 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
       <div class="igrp"><label class="ilb" for="dg-ip">Intraluminal Pressure <span class="hint">(coeff, higher=worse)</span></label><input class="ifd" type="number" id="dg-ip" value="3.206" step="0.001"><div class="irg">Normal: 1.2–2.3 | Elevated = pressure/spasm pattern</div></div>
       <div class="igrp"><label class="ilb" for="dg-ds">Digestive System Overall <span class="hint">(index)</span></label><input class="ifd" type="number" id="dg-ds" value="3.607" step="0.001"><div class="irg">Normal: 3.5–4.7</div></div>
     </div>
-    <div class="igrp" style="margin-top:var(--sp3);padding:var(--sp3);background:var(--sOff);border-radius:var(--rmd)">
-      <label style="display:flex;align-items:center;gap:var(--sp2);cursor:pointer;font-size:var(--text-sm)">
-        <input type="checkbox" id="dg-redflag" onchange="calcAll()">
-        <span style="color:var(--err);font-weight:600">⚠</span>
-        Alarm symptoms present (blood in stool, significant weight loss, nocturnal diarrhoea, persistent vomiting, fever with GI symptoms)
-      </label>
-    </div>
-    <div class="bgrp"><button class="btn btnp" onclick="calcAll()"><i data-lucide="calculator" width="16" height="16"></i> Calculate</button></div>
   </div>
   <div class="panel" id="r-dg" style="display:none">
     <div class="ptit" style="margin-bottom:var(--sp4)"><i data-lucide="activity" width="18" height="18"></i> Gut / Digestive Score</div>
