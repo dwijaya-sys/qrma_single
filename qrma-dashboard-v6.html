@@ -786,14 +786,12 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
       <div class="igrp"><label class="ilb" for="dg-bi" data-label-key="dg-bi">Intestinal Bacteria Balance <span class="hint">(coeff)</span></label><input class="ifd" type="number" id="dg-bi" value="1.511" step="0.001"><div class="irg">Normal: 1.7–2.6</div></div>
       <div class="igrp"><label class="ilb" for="dg-ip" data-label-key="dg-ip">Intraluminal Pressure <span class="hint">(coeff, higher=worse)</span></label><input class="ifd" type="number" id="dg-ip" value="3.206" step="0.001"><div class="irg">Normal: 1.2–2.3 | Elevated = pressure/spasm pattern</div></div>
       <div class="igrp"><label class="ilb" for="dg-ds" data-label-key="dg-ds">Digestive System Overall <span class="hint">(index)</span></label><input class="ifd" type="number" id="dg-ds" value="3.607" step="0.001"><div class="irg">Normal: 3.5–4.7</div></div>
-      <div class="igrp" style="align-self:center"><label class="ilb" for="dg-redflag" data-label-key="dg-redflag" style="display:flex;align-items:center;gap:var(--sp2);cursor:pointer"><input type="checkbox" id="dg-redflag" style="width:16px;height:16px;accent-color:var(--err)"> Alarm symptoms present</label><div class="irg">Check if patient reports rectal bleeding, unintentional weight loss, or persistent nocturnal symptoms</div></div>
+
     </div>
   </div>
   <div class="panel" id="r-dg" style="display:none">
     <div class="ptit" style="margin-bottom:var(--sp4)"><i data-lucide="activity" width="18" height="18"></i> Gut / Digestive Score</div>
-    <div id="r-dg-redflag" style="display:none">
-      <div class="aal aerr"><i data-lucide="alert-circle" width="16" height="16"></i><div class="aalb"><div class="aalt">Clinical Review Required</div><div class="aald">Alarm symptoms were recorded. This module's pattern findings should not be interpreted without clinical evaluation. Please consult a healthcare professional promptly.</div></div></div>
-    </div>
+
     <div id="r-dg-scores">
       <div class="srow">
         <div class="sc"><div class="sclb">Gut Score</div><div class="scval" id="r-dgs">--</div><div class="scdesc" id="r-dgl">--</div></div>
@@ -1039,21 +1037,82 @@ function barPillar(label,val,ccls){
 }
 function cBioAge(){
   const age = g('age');
-  const zd  = window.zoneData || {};
 
-  // Convert zone label to a burden score (inverse of zone score).
-  // normal(9)→1  ringan(6)→4  sedang(3)→7  berat(1)→9
-  // Unknown zone → neutral burden 5 (neither good nor bad).
-  function burden(fieldId){
-    const zone = zd[fieldId + '_zone'];
-    if(!zone) return 5;
-    const s = scoreFromZone(zone); // from zone-scoring.js
+  // ── Threshold config for all 18 Bio Age fields ───────────────────────────
+  // window.zoneData is only written by CSV/JSON import and never reflects
+  // live manual edits. We compute zones here from raw values so the pillar
+  // bars respond immediately to any field change.
+  //
+  // dir 'hi'  — higher is worse; anchor = hi
+  //   normal ≤ hi · ringan ≤ 1.5×hi · sedang ≤ 3×hi · berat > 3×hi
+  // dir 'lo'  — lower is worse (reserve); anchor = lo
+  //   normal ≥ lo · ringan ≥ 0.75×lo · sedang ≥ 0.5×lo · berat < 0.5×lo
+  // dir 'bi'  — bidirectional; uses range width rw = hi − lo
+  //   normal inside [lo, hi] · ringan within 0.5×rw · sedang within 1.5×rw · berat beyond
+  const BIO_THR = {
+    bv:  { lo:30,   hi:45,   dir:'hi' },
+    cp:  { lo:0,    hi:50,   dir:'hi' },
+    art: { lo:0,    hi:0.5,  dir:'hi' },
+    ins: { lo:3.0,  hi:5.0,  dir:'bi' },
+    bs:  { lo:4.4,  hi:6.1,  dir:'bi' },
+    fr:  { lo:0,    hi:3.0,  dir:'hi' },
+    hyp: { lo:100,  hi:150,  dir:'hi' },
+    ph:  { lo:3.5,  hi:4.5,  dir:'bi' },
+    pb:  { lo:0,    hi:1.2,  dir:'hi' },
+    hg:  { lo:0,    hi:0.5,  dir:'hi' },
+    ce:  { lo:0.7,  hi:1.0,  dir:'lo' },
+    cs:  { lo:4.0,  hi:6.0,  dir:'lo' },
+    cj:  { lo:5.0,  hi:7.0,  dir:'lo' },
+    coq: { lo:1.0,  hi:2.0,  dir:'lo' },
+    gsh: { lo:1.0,  hi:2.0,  dir:'lo' },
+    vc:  { lo:4.5,  hi:6.5,  dir:'lo' },
+    ve:  { lo:5.0,  hi:7.0,  dir:'lo' },
+    ost: { lo:100,  hi:160,  dir:'bi' },
+  };
+
+  function rawToZone(val, cfg) {
+    if (val === null || isNaN(val)) return 'unknown';
+    const { lo, hi, dir } = cfg;
+    if (dir === 'hi') {
+      if (val <= hi)        return 'normal';
+      if (val <= hi * 1.5)  return 'ringan';
+      if (val <= hi * 3)    return 'sedang';
+      return 'berat';
+    }
+    if (dir === 'lo') {
+      if (val >= lo)        return 'normal';
+      if (val >= lo * 0.75) return 'ringan';
+      if (val >= lo * 0.5)  return 'sedang';
+      return 'berat';
+    }
+    // 'bi' — bidirectional, anchored on range width
+    const rw = hi - lo;
+    if (val >= lo && val <= hi) return 'normal';
+    if (val > hi) {
+      if (val <= hi + rw * 0.5)  return 'ringan';
+      if (val <= hi + rw * 1.5)  return 'sedang';
+      return 'berat';
+    }
+    // val < lo
+    if (val >= lo - rw * 0.5)  return 'ringan';
+    if (val >= lo - rw * 1.5)  return 'sedang';
+    return 'berat';
+  }
+
+  // Compute zones from live input values and write to window.zoneData
+  if (!window.zoneData) window.zoneData = {};
+  Object.entries(BIO_THR).forEach(([fieldId, cfg]) => {
+    window.zoneData[fieldId + '_zone'] = rawToZone(g(fieldId), cfg);
+  });
+
+  // Burden from zone: normal→1  ringan→4  sedang→7  berat→9  unknown→5
+  function burden(fieldId) {
+    const s = scoreFromZone(window.zoneData[fieldId + '_zone'] || 'unknown');
     return s === 0 ? 5 : 10 - s;
   }
 
   function avgBurden(fields){
-    const scores = fields.map(burden);
-    return scores.reduce((a,b) => a+b, 0) / scores.length;
+    return fields.map(burden).reduce((a,b) => a+b, 0) / fields.length;
   }
 
   // Pillar 1 — vascular & metabolic load
@@ -1066,8 +1125,6 @@ function cBioAge(){
   const p3 = avgBurden(['ce','cs','cj','coq','gsh','vc','ve','ost']);
 
   // Bio age offset: weighted pillar burden × scale factor 1.2
-  // Tuned so mixed ringan/sedang zones produce a ~3–6 year gap above
-  // chronological age, matching the thresholds.json flagAbove: 3 rule.
   const offset = (p1*0.35 + p2*0.35 + p3*0.30) * 1.2;
 
   return {
@@ -1473,8 +1530,6 @@ function cBc() {
 })();
 function cDg(){
   const zd=window.zoneData||{};
-  const rf=document.getElementById('dg-redflag')?.checked||false;
-  if(rf) return{s:null,redFlag:true,mt:null,ab:null,pi:null};
   function bd(id){const s=scoreFromZone(zd[id+'_zone']||'unknown');return s===0?5:10-s;}
   function g(id){return parseFloat(document.getElementById(id)?.value)||null;}
   const mt=((bd('dg-lp')+bd('dg-sp')+bd('dg-lc'))/3)*(100/9);
@@ -1484,10 +1539,22 @@ function cDg(){
   const bloatingConstipation=(['berat','sedang'].includes(zd['dg-ip_zone']))&&(['berat','sedang'].includes(zd['dg-lc_zone']));
   const upperGiStrain=(['berat','sedang'].includes(zd['dg-lp_zone']))&&(['berat','sedang'].includes(zd['dg-sa_zone']));
   const absorptionDeficit=(zd['dg-sa_zone']==='berat')||(zd['dg-ca_zone']==='berat');
-  return{s,redFlag:false,mt:Math.round(mt),ab:Math.round(ab),pi:Math.round(pi),
+  return{s,mt:Math.round(mt),ab:Math.round(ab),pi:Math.round(pi),
     lp:g('dg-lp'),la:g('dg-la'),sp:g('dg-sp'),sa:g('dg-sa'),
     lc:g('dg-lc'),ca:g('dg-ca'),bi:g('dg-bi'),ip:g('dg-ip'),ds:g('dg-ds'),
     bloatingConstipation,upperGiStrain,absorptionDeficit};
+}
+function renderHrvStrip_Digestive(){
+  const el=document.getElementById('r-dgal');
+  if(!el)return;
+  const dg=cDg();
+  if(dg.s===null){el.innerHTML='';return;}
+  const lang=(typeof currentLang!=='undefined')?currentLang:'id';
+  const title=lang==='en'?'Digestive Pattern Flagged':'Pola Pencernaan Terdeteksi';
+  const desc=lang==='en'
+    ?'Consider keeping a bowel diary and Bristol stool scale assessment to establish a baseline transit pattern. Confirm with clinician if symptoms are persistent.'
+    :'Pertimbangkan untuk membuat catatan harian BAB dan penilaian skala Bristol untuk menetapkan pola transit dasar. Konfirmasi dengan klinisi jika gejala menetap.';
+  el.innerHTML=dg.s>30?aal('info',title,desc):'';
 }
 let RC=null,BC=null;
 function drawCharts(sc){const dk=document.documentElement.getAttribute('data-theme')==='dark';Chart.defaults.color=dk?'#cdccca':'#1a1a1a';const tc=dk?'#cdccca':'#1a1a1a',gc=dk?'#393836':'#dcd9d5';const lb=['Oxidative','Toxic','Metabolic','Cardio-Renal','Nutrients','Skin','Gut','Body Comp'];const rd=[100-Math.min(sc.ox,100),100-Math.min(sc.tx,100),100-Math.min(sc.mt,100),100-Math.min(sc.cr,100),Math.min(sc.nt,100),Math.min(sc.sk,100),100-Math.min(sc.dg||0,100),100-Math.min(sc.bc||0,100)];const cc=v=>v<=30?'#437a22':v<=60?'#d19900':'#a13544';const bc=[cc(sc.ox),cc(sc.tx),cc(sc.mt),cc(sc.cr),cc(100-sc.nt),cc(100-sc.sk),cc(sc.dg||0),cc(sc.bc||0)];if(RC)RC.destroy();if(BC)BC.destroy();RC=new Chart(document.getElementById('radarChart'),{type:'radar',data:{labels:lb,datasets:[{data:rd,backgroundColor:'rgba(1,105,111,.15)',borderColor:'#01696f',pointBackgroundColor:'#01696f',pointRadius:4,borderWidth:2}]},options:{responsive:true,scales:{r:{min:0,max:100,ticks:{display:false},grid:{color:gc},angleLines:{color:gc},pointLabels:{color:document.documentElement.getAttribute('data-theme')==='dark'?'#cdccca':'#1a1a1a',font:{family:'Satoshi',size:13,weight:'500'}}}},plugins:{legend:{display:false}}}});BC=new Chart(document.getElementById('barChart'),{type:'bar',data:{labels:lb,datasets:[{data:[sc.ox,sc.tx,sc.mt,sc.cr,100-sc.nt,100-sc.sk,sc.dg||0,sc.bc||0],backgroundColor:bc,borderRadius:6,borderSkipped:false}]},options:{responsive:true,indexAxis:'y',scales:{x:{min:0,max:100,grid:{color:gc},ticks:{color:document.documentElement.getAttribute('data-theme')==='dark'?'#cdccca':'#1a1a1a',font:{size:13,weight:'500'}},border:{color:gc}},y:{grid:{display:false},ticks:{color:document.documentElement.getAttribute('data-theme')==='dark'?'#cdccca':'#1a1a1a',font:{size:13,weight:'500'}},border:{color:gc}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' Risk: '+ctx.raw+'%'}}}}}); }
@@ -1502,15 +1569,12 @@ function buildAction(d){const rows=[];if(d.ba.ba>d.ba.age+5)rows.push({p:'High',
     rows.push({ p:'Low', dom:'Skin: Sebum — Dry Pattern',
       f:'Sebum gland signal below reference range pattern',
       t:'Dermatological assessment; skin hydration test' });
-  if(d.dg && !d.dg.redFlag){
+  if(d.dg && d.dg.s!==null){
     if(d.dg.mt>40) rows.push({p:'Low',dom:'Gut: Motility Pattern',f:'Reduced transit pattern across gastric, small or large intestine signals',t:'Bowel diary + Bristol stool scale; transit study if persistent symptoms'});
     if(d.dg.ab>40) rows.push({p:'Medium',dom:'Gut: Absorption Pattern',f:'Reduced intestinal or colonic absorption pattern — consider nutrient status review',t:'Serum B12, ferritin, 25-OH Vitamin D, full blood count'});
     if(d.dg.pi>40) rows.push({p:'Low',dom:'Gut: Intraluminal Pressure',f:'Elevated intraluminal pressure pattern — often functional',t:'Bowel diary; fecal calprotectin only if clinician suspects inflammatory cause'});
     if(d.dg.bloatingConstipation) rows.push({p:'Medium',dom:'Gut: Bloating + Reduced Transit Pattern',f:'Elevated pressure combined with reduced large intestine motility pattern',t:'Bowel diary; low-FODMAP trial; review eating pace and meal size'});
     if(d.dg.absorptionDeficit) rows.push({p:'Medium',dom:'Gut: Absorption Deficit Pattern',f:'Small intestine or colonic absorption below reference range pattern',t:'Serum B12, ferritin, 25-OH Vitamin D, CBC; discuss with clinician if persistent'});
-  }
-  if(d.dg && d.dg.redFlag){
-    rows.push({p:'High',dom:'Gut: Alarm Symptoms Recorded',f:'Operator flagged alarm symptoms — clinical evaluation required',t:'Immediate clinician review; CBC, CRP, fecal calprotectin, stool blood test, GI referral'});
   }
   // BodyComp entries — zone-based, reads from window.bcResult
   const bcR=window.bcResult;
@@ -1523,7 +1587,7 @@ function buildAction(d){const rows=[];if(d.ba.ba>d.ba.age+5)rows.push({p:'High',
     if(bcR.whr?.zone&&bcR.whr.zone!=='normal')
       rows.push({p:_bcp(bcR.whr.zone),dom:'Body Composition: Waist-Height Ratio',f:'WHR '+bcR.whr.raw.toFixed(2)+' — zone: '+bcR.whr.zone,t:'Metabolic panel + fasting insulin — cardiometabolic risk from central adiposity'});
   }
-rows.sort((a,b)=>({High:0,Medium:1,Low:2}[a.p]-{High:0,Medium:1,Low:2}[b.p]));if(!rows.length){document.getElementById('r-acttbl').innerHTML=aal('ok','No Critical Flags','All screening signals within normal reference ranges. Routine monitoring recommended.');}else{let h='<table class="atbl"><thead><tr><th>Priority</th><th>Domain</th><th>Screening Finding</th><th>Suggested Confirmatory Tests</th></tr></thead><tbody>';rows.forEach(r=>{const pc=r.p==='High'?'phi':r.p==='Medium'?'pmd':'plo';h+='<tr><td class="'+pc+'">'+r.p+'</td><td>'+r.dom+'</td><td>'+r.f+'</td><td style="font-size:var(--text-sm);color:#000000">'+r.t+'</td></tr>';});h+='</tbody></table>';document.getElementById('r-acttbl').innerHTML=h;}const fp=[];if(d.ox.s>40)fp.push(ftrow('Antioxidant Priority',['Berries','Spinach','Green Tea','Brazil Nuts (Se)','Citrus (Vit C)','Sunflower Seeds (Vit E)','Dark Chocolate']));if(d.mt.s>30)fp.push(ftrow('Metabolic Support',['Oats + Legumes (Fiber)','Fatty Fish (Omega-3)','Bitter Melon','Cinnamon','Reduce Refined Carbs']));if(d.cr.s>30)fp.push(ftrow('Cardio-Renal',['Bananas + Avocado (K)','Pumpkin Seeds (Mg)','Quercetin Foods (Onion)','Reduce Sodium']));if(d.nt.def>3)fp.push(ftrow('Micronutrient Diversity',['Dark Leafy Greens (Mg, Folate)','Pumpkin Seeds (Zinc)','Seaweed (Iodine)','Fatty Fish (D3, B6)','Chickpeas (Folate)']));if(d.sk.s<60)fp.push(ftrow('Skin + Collagen',['Bone Broth','Fish / Chicken Skin','Egg Whites','Vitamin C Cofactors','Garlic (Sulfur)','Berries (Resveratrol)']));if(d.dg && !d.dg.redFlag && d.dg.s>30)fp.push(ftrow('Digestive Support',['Smaller meals + slow eating (20+ min per meal)','Warm ginger or peppermint tea with meals','10–15 min walk after lunch (Small Intestine peak: 1–3 PM)','Gradual fibre increase only — sudden increase worsens bloating','Low-FODMAP trial for bloating-predominant patterns','Reduce carbonated drinks + sugar alcohols','Tempeh, kimchi, kefir in small amounts if tolerated','Leek, oats, banana — prebiotic-rich foods','Avoid eating under stress — rest-and-digest before meals']));
+rows.sort((a,b)=>({High:0,Medium:1,Low:2}[a.p]-{High:0,Medium:1,Low:2}[b.p]));if(!rows.length){document.getElementById('r-acttbl').innerHTML=aal('ok','No Critical Flags','All screening signals within normal reference ranges. Routine monitoring recommended.');}else{let h='<table class="atbl"><thead><tr><th>Priority</th><th>Domain</th><th>Screening Finding</th><th>Suggested Confirmatory Tests</th></tr></thead><tbody>';rows.forEach(r=>{const pc=r.p==='High'?'phi':r.p==='Medium'?'pmd':'plo';h+='<tr><td class="'+pc+'">'+r.p+'</td><td>'+r.dom+'</td><td>'+r.f+'</td><td style="font-size:var(--text-sm);color:#000000">'+r.t+'</td></tr>';});h+='</tbody></table>';document.getElementById('r-acttbl').innerHTML=h;}const fp=[];if(d.ox.s>40)fp.push(ftrow('Antioxidant Priority',['Berries','Spinach','Green Tea','Brazil Nuts (Se)','Citrus (Vit C)','Sunflower Seeds (Vit E)','Dark Chocolate']));if(d.mt.s>30)fp.push(ftrow('Metabolic Support',['Oats + Legumes (Fiber)','Fatty Fish (Omega-3)','Bitter Melon','Cinnamon','Reduce Refined Carbs']));if(d.cr.s>30)fp.push(ftrow('Cardio-Renal',['Bananas + Avocado (K)','Pumpkin Seeds (Mg)','Quercetin Foods (Onion)','Reduce Sodium']));if(d.nt.def>3)fp.push(ftrow('Micronutrient Diversity',['Dark Leafy Greens (Mg, Folate)','Pumpkin Seeds (Zinc)','Seaweed (Iodine)','Fatty Fish (D3, B6)','Chickpeas (Folate)']));if(d.sk.s<60)fp.push(ftrow('Skin + Collagen',['Bone Broth','Fish / Chicken Skin','Egg Whites','Vitamin C Cofactors','Garlic (Sulfur)','Berries (Resveratrol)']));if(d.dg && d.dg.s>30)fp.push(ftrow('Digestive Support',['Smaller meals + slow eating (20+ min per meal)','Warm ginger or peppermint tea with meals','10–15 min walk after lunch (Small Intestine peak: 1–3 PM)','Gradual fibre increase only — sudden increase worsens bloating','Low-FODMAP trial for bloating-predominant patterns','Reduce carbonated drinks + sugar alcohols','Tempeh, kimchi, kefir in small amounts if tolerated','Leek, oats, banana — prebiotic-rich foods','Avoid eating under stress — rest-and-digest before meals']));
 if(bcR&&bcR.s>0)fp.push(ftrow('Anti-inflammatory foods',['Fatty fish','Berries','Leafy greens','Olive oil','Turmeric']));
 if(bcR&&(bcR.wc?.zone!=='normal'||bcR.whr?.zone!=='normal'))fp.push(ftrow('Waist reduction support',['Green tea','Legumes','Resistant starch','Reduce refined carbs']));
 if(bcR&&bcR.bf?.zone&&bcR.bf.zone!=='normal')fp.push(ftrow('Body composition support',['High-protein foods','Cruciferous vegetables','Adequate sleep priority']));
@@ -1559,13 +1623,8 @@ bmr('Eye Collagen',      sk.ec, zbs('sk-ec','res'),(window.zoneData||{})['sk-ec_
 bmr('Joint Collagen',    sk.jc, zbs('sk-jc','res'),(window.zoneData||{})['sk-jc_zone']||'unknown')+'</div>';document.getElementById('r-skf').innerHTML=ftrow('Skin-Supporting Foods',['Bone Broth (Collagen)','Fish + Chicken Skin','Egg Whites','Vitamin C Cofactors','Berries (Resveratrol)','Garlic (Sulfur)']);se('k-sk',sk.s+'%',skC);document.getElementById('k-skl').textContent=skL;
 // Digestive module render
 if(!document.getElementById('r-dg')){}
-else if(dg.redFlag){
+else if(dg.s!==null){
   document.getElementById('r-dg').style.display='';
-  document.getElementById('r-dg-redflag').style.display='';
-  document.getElementById('r-dg-scores').style.display='none';
-} else if(dg.s!==null){
-  document.getElementById('r-dg').style.display='';
-  document.getElementById('r-dg-redflag').style.display='none';
   document.getElementById('r-dg-scores').style.display='';
   se('r-dgs', dg.s, dg.s<=30?'cok':dg.s<=60?'cwarn':'cbad');
   se('r-dgl', lbl(dg.s,30,60));
@@ -1579,7 +1638,10 @@ else if(dg.redFlag){
   if(dg.upperGiStrain) pat+=aal('warn','Upper GI Digestion Strain Pattern','Reduced gastric motility combined with reduced small intestine absorption. Consider smaller meals and pre-meal vagal warm-up.');
   if(dg.absorptionDeficit) pat+=aal('info','Absorption Deficit Pattern','Reduced small intestine or colonic absorption pattern. Consider reviewing nutrient status — Vitamin B12, iron, fat-soluble vitamins.');
   document.getElementById('r-dgpat').innerHTML=pat;
-  document.getElementById('r-dgal').innerHTML=dg.s>30?aal('info','Digestive Pattern Flagged','Consider keeping a bowel diary and Bristol stool scale assessment to establish a baseline transit pattern. Confirm with clinician if symptoms are persistent.'):'';
+  const _dgLang=(typeof currentLang!=='undefined')?currentLang:'id';
+  const _dgTitle=_dgLang==='en'?'Digestive Pattern Flagged':'Pola Pencernaan Terdeteksi';
+  const _dgDesc=_dgLang==='en'?'Consider keeping a bowel diary and Bristol stool scale assessment to establish a baseline transit pattern. Confirm with clinician if symptoms are persistent.':'Pertimbangkan untuk membuat catatan harian BAB dan penilaian skala Bristol untuk menetapkan pola transit dasar. Konfirmasi dengan klinisi jika gejala menetap.';
+  document.getElementById('r-dgal').innerHTML=dg.s>30?aal('info',_dgTitle,_dgDesc):'';
 }
 // Body Comp render
 se('k-bc', bc.s > 0 ? bc.s.toFixed(0)+'%' : '--');
@@ -2176,6 +2238,7 @@ document.addEventListener('DOMContentLoaded', () => {
       lang = lang === 'id' ? 'en' : 'id';
       if (typeof setLang === 'function') setLang(lang);
       if (typeof applyLabels === 'function') applyLabels(lang);
+      if (typeof renderHrvStrip_Digestive === 'function') renderHrvStrip_Digestive();
       btn.textContent = lang.toUpperCase();
       document.querySelectorAll('[data-zone]').forEach(el => {
         if (typeof getBadge === 'function') el.textContent = getBadge(el.dataset.zone);
