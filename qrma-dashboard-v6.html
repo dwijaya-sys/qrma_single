@@ -269,6 +269,21 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
 .hrv-gauge-title{font-size:var(--text-xs);font-weight:700;color:var(--txt);margin-bottom:var(--sp2);}
 .hrv-gauge-wrap svg{width:100%;height:auto;max-height:120px;display:block;}
 .hrv-ali-explain{font-size:var(--text-sm);color:var(--txt);line-height:1.6;margin-top:var(--sp3);padding:var(--sp3);background:var(--surface,rgba(0,0,0,.06));border-radius:var(--rad);}
+/* ── Body Comp input panel ── */
+.btn-group{display:inline-flex;border:1px solid var(--brd);border-radius:var(--rmd);overflow:hidden;margin-bottom:var(--sp5);}
+.btn-seg{padding:var(--sp2) var(--sp5);font-size:var(--text-sm);font-weight:500;background:none;border:none;color:var(--txtM);cursor:pointer;transition:background var(--tr),color var(--tr);font-family:var(--fB);}
+.btn-seg:hover{background:var(--sOff);color:var(--txt);}
+.btn-seg.active{background:var(--pri);color:#fff;font-weight:600;}
+.bc-auto-badge{font-size:var(--text-xs);background:var(--blueHi);color:var(--blue);padding:1px 7px;border-radius:var(--rfull);font-weight:600;margin-left:var(--sp1);vertical-align:middle;}
+.bc-reset-link{font-size:var(--text-xs);color:var(--pri);cursor:pointer;text-decoration:underline;margin-left:var(--sp2);white-space:nowrap;background:none;border:none;font-family:var(--fB);padding:0;}
+.bc-reset-link:hover{color:var(--priH);}
+.bc-bmr-disp{background:var(--sOff);border:1px solid var(--brd);border-radius:var(--rmd);padding:var(--sp3) var(--sp4);font-size:var(--text-sm);color:var(--txt);}
+.bc-bmr-val{font-weight:700;color:var(--pri);font-variant-numeric:tabular-nums;}
+.bc-grp-lbl{font-size:var(--text-xs);font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--txtF);margin:var(--sp5) 0 var(--sp3);padding-top:var(--sp3);border-top:1px solid var(--div);}
+.bc-grp-lbl:first-child{margin-top:0;border-top:none;}
+.bc-csv-box{background:var(--sOff);border:1px dashed var(--brd);border-radius:var(--rlg);padding:var(--sp5) var(--sp6);display:flex;flex-direction:column;gap:var(--sp3);}
+.bc-csv-note{font-size:var(--text-sm);color:var(--txtM);}
+.bc-csv-preview{font-size:var(--text-sm);background:var(--surf2);border:1px solid var(--brd);border-radius:var(--rmd);padding:var(--sp3) var(--sp4);margin-top:var(--sp2);display:none;}
 </style>
   <script src="03_Scripts/zone-scoring.js"></script>
   <script src="03_Scripts/hrv-engine.js"></script>
@@ -629,11 +644,112 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
   <div><h2 class="pgt">Body Composition<small>Anthropometric risk scoring: BMI, waist, body fat, visceral fat, waist-to-height ratio, and BMR</small></h2></div>
   <div class="disc"><i data-lucide="info" width="20" height="20" style="flex-shrink:0;color:var(--warn);margin-top:2px"></i><p><strong>Screening Only:</strong> Body composition values are for reference. Confirm with calibrated measurement (DEXA, bioimpedance, clinical tape). Not a diagnosis.</p></div>
 
-  <!-- INPUT PANEL — TODO Task 3 -->
+  <!-- INPUT PANEL -->
   <div id="bc-input-panel" class="panel">
-    <div class="phd"><div><div class="ptit"><i data-lucide="ruler" width="18" height="18"></i> Body Composition Inputs</div><div class="psub">Manual entry — CSV import supported via Import CSV</div></div><span class="badge bnl">Needs lab confirmation</span></div>
-    <p style="color:var(--txtM);font-size:var(--text-sm);padding:var(--sp4) 0">[ Body composition input panel — to be built in Task 3 ]</p>
-  </div>
+    <div class="phd"><div><div class="ptit"><i data-lucide="ruler" width="18" height="18"></i> Body Composition Inputs</div><div class="psub">Manual entry or CSV import — all fields optional, partial scoring supported</div></div><span class="badge bnl">Needs lab confirmation</span></div>
+
+    <!-- Mode toggle -->
+    <div class="btn-group" id="bc-mode-toggle">
+      <button class="btn-seg active" id="bc-mode-manual" onclick="bcSetMode('manual')">Manual Entry</button>
+      <button class="btn-seg" id="bc-mode-csv" onclick="bcSetMode('csv')">CSV Import</button>
+    </div>
+
+    <!-- ── Mode A: Manual entry ── -->
+    <div id="bc-manual-section">
+
+      <div class="bc-grp-lbl bc-grp-lbl:first-child" style="margin-top:0;border-top:none;font-size:var(--text-xs);font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--txtF);margin-bottom:var(--sp3);">Identity</div>
+      <div class="ig">
+        <div class="igrp">
+          <label class="ilb" for="bc-gender">Gender</label>
+          <select class="ifd" id="bc-gender" onchange="bcAutoCalc()">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="igrp">
+          <label class="ilb" for="bc-age">Age <span class="hint">(years)</span></label>
+          <input class="ifd" type="number" id="bc-age" min="10" max="120" step="1" placeholder="e.g. 35" oninput="bcAutoCalc()">
+          <div class="irg">10 – 120 years</div>
+        </div>
+      </div>
+
+      <div style="font-size:var(--text-xs);font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--txtF);margin:var(--sp5) 0 var(--sp3);padding-top:var(--sp3);border-top:1px solid var(--div);">Primary Measurements</div>
+      <div class="ig">
+        <div class="igrp">
+          <label class="ilb" for="bc-height">Height <span class="hint">(cm)</span></label>
+          <input class="ifd" type="number" id="bc-height" min="50" max="250" step="0.1" placeholder="e.g. 170" oninput="bcAutoCalc()">
+          <div class="irg">50 – 250 cm</div>
+        </div>
+        <div class="igrp">
+          <label class="ilb" for="bc-weight">Weight <span class="hint">(kg)</span></label>
+          <input class="ifd" type="number" id="bc-weight" min="10" max="300" step="0.1" placeholder="e.g. 75" oninput="bcAutoCalc()">
+          <div class="irg">10 – 300 kg</div>
+        </div>
+        <div class="igrp">
+          <label class="ilb" for="bc-bmi">BMI <span class="hint">(kg/m²)</span> <span class="bc-auto-badge" id="bc-bmi-badge" style="display:none">auto</span> <button class="bc-reset-link" id="bc-bmi-reset" onclick="bcResetAuto('bc-bmi')" style="display:none" type="button">↺ recalculate</button></label>
+          <input class="ifd" type="number" id="bc-bmi" min="10" max="70" step="0.1" placeholder="auto from height+weight" data-manual="false" oninput="bcMarkManual(this)">
+          <div class="irg">Normal: 18.5 – 24.9</div>
+        </div>
+        <div class="igrp">
+          <label class="ilb" for="bc-wc">Waist Circumference <span class="hint">(cm)</span></label>
+          <input class="ifd" type="number" id="bc-wc" min="20" max="200" step="0.1" placeholder="e.g. 88" oninput="bcAutoCalc()">
+          <div class="irg">Risk: M ≥90 cm · F ≥80 cm</div>
+        </div>
+      </div>
+
+      <div style="font-size:var(--text-xs);font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--txtF);margin:var(--sp5) 0 var(--sp3);padding-top:var(--sp3);border-top:1px solid var(--div);">Body Composition Measurements</div>
+      <div class="ig">
+        <div class="igrp">
+          <label class="ilb" for="bc-bf">Body Fat <span class="hint">(%)</span></label>
+          <input class="ifd" type="number" id="bc-bf" min="1" max="70" step="0.1" placeholder="e.g. 22">
+          <div class="irg">From DEXA, BIA, or skinfold</div>
+        </div>
+        <div class="igrp">
+          <label class="ilb" for="bc-vf">Visceral Fat Index <span class="hint">(1–59)</span></label>
+          <input class="ifd" type="number" id="bc-vf" min="1" max="59" step="1" placeholder="e.g. 8">
+          <div class="irg">Normal: 1–9 (Tanita scale)</div>
+        </div>
+        <div class="igrp">
+          <label class="ilb" for="bc-whr">Waist-to-Height Ratio <span class="bc-auto-badge" id="bc-whr-badge" style="display:none">auto</span> <button class="bc-reset-link" id="bc-whr-reset" onclick="bcResetAuto('bc-whr')" style="display:none" type="button">↺ recalculate</button></label>
+          <input class="ifd" type="number" id="bc-whr" min="0.2" max="1.5" step="0.001" placeholder="auto from waist ÷ height" data-manual="false" oninput="bcMarkManual(this)">
+          <div class="irg">Normal &lt;0.50 · Risk ≥0.60</div>
+        </div>
+      </div>
+
+      <div style="font-size:var(--text-xs);font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--txtF);margin:var(--sp5) 0 var(--sp3);padding-top:var(--sp3);border-top:1px solid var(--div);">Estimated Basal Metabolic Rate</div>
+      <div class="bc-bmr-disp">
+        Estimated BMR: <span class="bc-bmr-val" id="bc-bmr-display">—</span>
+        <span style="font-size:var(--text-xs);color:var(--txtM)"> (Mifflin-St Jeor · informational only)</span>
+      </div>
+
+      <div class="bgrp" style="margin-top:var(--sp5)">
+        <button class="btn btnp" onclick="calcAll()"><i data-lucide="calculator" width="16" height="16"></i> Calculate Score</button>
+      </div>
+    </div><!-- end bc-manual-section -->
+
+    <!-- ── Mode B: CSV import ── -->
+    <div id="bc-csv-section" style="display:none">
+      <div class="bc-csv-box">
+        <p class="bc-csv-note">Upload a CSV file using the body composition template. One header row + one data row.</p>
+        <div>
+          <a href="#" onclick="bcDownloadTemplate(); return false;" style="font-size:var(--text-sm);color:var(--pri);text-decoration:underline;">
+            <i data-lucide="download" width="13" height="13" style="display:inline;vertical-align:middle;margin-right:4px"></i>Download body_comp_template.csv
+          </a>
+        </div>
+        <div>
+          <label class="ilb" for="bc-csv-input" style="margin-bottom:var(--sp2)">Select CSV file</label>
+          <input class="ifd" type="file" id="bc-csv-input" accept=".csv" style="padding:var(--sp2)">
+        </div>
+        <div class="bc-csv-preview" id="bc-csv-preview"></div>
+        <div>
+          <button class="btn btnp" id="bc-csv-confirm" style="display:none" onclick="bcConfirmCsv()">
+            <i data-lucide="check" width="14" height="14"></i> Import &amp; Calculate
+          </button>
+        </div>
+      </div>
+    </div><!-- end bc-csv-section -->
+
+  </div><!-- end bc-input-panel -->
 
   <!-- RESULT PANEL -->
   <div class="panel" id="r-bc" style="display:none">
@@ -810,6 +926,7 @@ function zbs(fieldId,type){
   return type==='brdn'?'abnormal':'deficient';
 }
 function lbl(v,lo,hi){return v<=lo?'Low Concern':v<=hi?'Monitor':'Needs Lab Confirmation';}
+function getBcLabel(s){return s<30?'Low Concern':s<60?'Monitor':'Needs Lab Confirmation';}
 function bar(label,val,max,ccls){const pct=Math.min(100,(val/max)*100);const fc=ccls.replace('c','f');return '<div class="sbw"><div class="sbh"><span class="sbhl">'+label+'</span><span class="'+ccls+'" style="font-weight:700">'+val.toFixed(1)+'</span></div><div class="sbt"><div class="sbf '+fc+'" style="width:'+pct+'%"></div></div><div class="sbl"><span>0</span><span>'+max+'</span></div></div>';}
 function bmr(name,val,st,zone){const m={normal:'cok2',borderline:'cbl',deficient:'cdef',abnormal:'cab'};const zA=zone?' data-zone="'+zone+'"':'';const label=zone&&typeof getBadge==='function'?getBadge(zone):{normal:'Normal',borderline:'Borderline',deficient:'Deficient',abnormal:'Abnormal'}[st]||st;return '<div class="bmr"><span class="bmn">'+name+'</span><span class="bmv">'+(typeof val==='number'?val.toFixed(3):val)+'</span><span class="chip '+(m[st]||'cbl')+'"'+zA+'>'+label+'</span></div>';}
 function aal(type,title,desc){const m={err:'aerr',warn:'awarn',info:'ainfo',ok:'aok'};const ic={err:'alert-circle',warn:'alert-triangle',info:'info',ok:'check-circle'};return '<div class="aal '+(m[type])+'"><i data-lucide="'+ic[type]+'" width="16" height="16" class="aalic"></i><div class="aalb"><div class="aalt">'+title+'</div><div class="aald">'+desc+'</div></div></div>';}
@@ -1311,8 +1428,35 @@ function buildAction(d){const rows=[];if(d.ba.ba>d.ba.age+5)rows.push({p:'High',
   if(d.dg && d.dg.redFlag){
     rows.push({p:'High',dom:'Gut: Alarm Symptoms Recorded',f:'Operator flagged alarm symptoms — clinical evaluation required',t:'Immediate clinician review; CBC, CRP, fecal calprotectin, stool blood test, GI referral'});
   }
-rows.sort((a,b)=>({High:0,Medium:1,Low:2}[a.p]-{High:0,Medium:1,Low:2}[b.p]));if(!rows.length){document.getElementById('r-acttbl').innerHTML=aal('ok','No Critical Flags','All screening signals within normal reference ranges. Routine monitoring recommended.');}else{let h='<table class="atbl"><thead><tr><th>Priority</th><th>Domain</th><th>Screening Finding</th><th>Suggested Confirmatory Tests</th></tr></thead><tbody>';rows.forEach(r=>{const pc=r.p==='High'?'phi':r.p==='Medium'?'pmd':'plo';h+='<tr><td class="'+pc+'">'+r.p+'</td><td>'+r.dom+'</td><td>'+r.f+'</td><td style="font-size:var(--text-sm);color:var(--txtM)">'+r.t+'</td></tr>';});h+='</tbody></table>';document.getElementById('r-acttbl').innerHTML=h;}const fp=[];if(d.ox.s>40)fp.push(ftrow('Antioxidant Priority',['Berries','Spinach','Green Tea','Brazil Nuts (Se)','Citrus (Vit C)','Sunflower Seeds (Vit E)','Dark Chocolate']));if(d.mt.s>30)fp.push(ftrow('Metabolic Support',['Oats + Legumes (Fiber)','Fatty Fish (Omega-3)','Bitter Melon','Cinnamon','Reduce Refined Carbs']));if(d.cr.s>30)fp.push(ftrow('Cardio-Renal',['Bananas + Avocado (K)','Pumpkin Seeds (Mg)','Quercetin Foods (Onion)','Reduce Sodium']));if(d.nt.def>3)fp.push(ftrow('Micronutrient Diversity',['Dark Leafy Greens (Mg, Folate)','Pumpkin Seeds (Zinc)','Seaweed (Iodine)','Fatty Fish (D3, B6)','Chickpeas (Folate)']));if(d.sk.s<60)fp.push(ftrow('Skin + Collagen',['Bone Broth','Fish / Chicken Skin','Egg Whites','Vitamin C Cofactors','Garlic (Sulfur)','Berries (Resveratrol)']));if(d.dg && !d.dg.redFlag && d.dg.s>30)fp.push(ftrow('Digestive Support',['Smaller meals + slow eating (20+ min per meal)','Warm ginger or peppermint tea with meals','10–15 min walk after lunch (Small Intestine peak: 1–3 PM)','Gradual fibre increase only — sudden increase worsens bloating','Low-FODMAP trial for bloating-predominant patterns','Reduce carbonated drinks + sugar alcohols','Tempeh, kimchi, kefir in small amounts if tolerated','Leek, oats, banana — prebiotic-rich foods','Avoid eating under stress — rest-and-digest before meals']));document.getElementById('r-actfood').innerHTML=fp.length?fp.join(''):'<p style="color:var(--txtM);font-size:var(--text-sm)">Continue balanced whole-foods diet. No critical nutritional gaps identified.</p>';const hi=rows.filter(r=>r.p==='High');document.getElementById('r-actal').innerHTML=hi.length?hi.map(r=>aal('err',r.dom+' - High Priority',r.f+'. Confirm: '+r.t)).join(''):aal('ok','No High-Priority Alerts','All flags at medium or low priority. See confirmatory tests table.');}
-function calcAll(){const ba=cBioAge(),ox=cOx(),tx=cTx(),mt=cMt(),cr=cCr(),nt=cNt(),sk=cSk(),dg=cDg(),bc=cBc();const GS={ox:ox.s,tx:tx.s,mt:mt.s,cr:cr.s,nt:nt.s,sk:sk.s,dg:dg.s||0,bc:bc.s||0};
+  // BodyComp entries — zone-based, reads from window.bcResult
+  const bcR=window.bcResult;
+  if(bcR && bcR.s>0){
+    const _bcp=z=>z==='berat'?'High':z==='sedang'?'Medium':'Low';
+    if(bcR.bmi?.zone&&bcR.bmi.zone!=='normal')
+      rows.push({p:_bcp(bcR.bmi.zone),dom:'Body Composition: BMI',f:'BMI '+bcR.bmi.raw.toFixed(1)+' kg/m² — zone: '+bcR.bmi.zone,t:'DEXA Scan or BIA — body fat % and lean mass distribution'});
+    if(bcR.vf?.zone&&bcR.vf.zone!=='normal')
+      rows.push({p:_bcp(bcR.vf.zone),dom:'Body Composition: Visceral Fat',f:'Visceral fat index '+bcR.vf.raw+' — zone: '+bcR.vf.zone,t:'Abdominal ultrasound or CT — visceral adipose tissue volume'});
+    if(bcR.whr?.zone&&bcR.whr.zone!=='normal')
+      rows.push({p:_bcp(bcR.whr.zone),dom:'Body Composition: Waist-Height Ratio',f:'WHR '+bcR.whr.raw.toFixed(2)+' — zone: '+bcR.whr.zone,t:'Metabolic panel + fasting insulin — cardiometabolic risk from central adiposity'});
+  }
+rows.sort((a,b)=>({High:0,Medium:1,Low:2}[a.p]-{High:0,Medium:1,Low:2}[b.p]));if(!rows.length){document.getElementById('r-acttbl').innerHTML=aal('ok','No Critical Flags','All screening signals within normal reference ranges. Routine monitoring recommended.');}else{let h='<table class="atbl"><thead><tr><th>Priority</th><th>Domain</th><th>Screening Finding</th><th>Suggested Confirmatory Tests</th></tr></thead><tbody>';rows.forEach(r=>{const pc=r.p==='High'?'phi':r.p==='Medium'?'pmd':'plo';h+='<tr><td class="'+pc+'">'+r.p+'</td><td>'+r.dom+'</td><td>'+r.f+'</td><td style="font-size:var(--text-sm);color:var(--txtM)">'+r.t+'</td></tr>';});h+='</tbody></table>';document.getElementById('r-acttbl').innerHTML=h;}const fp=[];if(d.ox.s>40)fp.push(ftrow('Antioxidant Priority',['Berries','Spinach','Green Tea','Brazil Nuts (Se)','Citrus (Vit C)','Sunflower Seeds (Vit E)','Dark Chocolate']));if(d.mt.s>30)fp.push(ftrow('Metabolic Support',['Oats + Legumes (Fiber)','Fatty Fish (Omega-3)','Bitter Melon','Cinnamon','Reduce Refined Carbs']));if(d.cr.s>30)fp.push(ftrow('Cardio-Renal',['Bananas + Avocado (K)','Pumpkin Seeds (Mg)','Quercetin Foods (Onion)','Reduce Sodium']));if(d.nt.def>3)fp.push(ftrow('Micronutrient Diversity',['Dark Leafy Greens (Mg, Folate)','Pumpkin Seeds (Zinc)','Seaweed (Iodine)','Fatty Fish (D3, B6)','Chickpeas (Folate)']));if(d.sk.s<60)fp.push(ftrow('Skin + Collagen',['Bone Broth','Fish / Chicken Skin','Egg Whites','Vitamin C Cofactors','Garlic (Sulfur)','Berries (Resveratrol)']));if(d.dg && !d.dg.redFlag && d.dg.s>30)fp.push(ftrow('Digestive Support',['Smaller meals + slow eating (20+ min per meal)','Warm ginger or peppermint tea with meals','10–15 min walk after lunch (Small Intestine peak: 1–3 PM)','Gradual fibre increase only — sudden increase worsens bloating','Low-FODMAP trial for bloating-predominant patterns','Reduce carbonated drinks + sugar alcohols','Tempeh, kimchi, kefir in small amounts if tolerated','Leek, oats, banana — prebiotic-rich foods','Avoid eating under stress — rest-and-digest before meals']));
+if(bcR&&bcR.s>0)fp.push(ftrow('Anti-inflammatory foods',['Fatty fish','Berries','Leafy greens','Olive oil','Turmeric']));
+if(bcR&&(bcR.wc?.zone!=='normal'||bcR.whr?.zone!=='normal'))fp.push(ftrow('Waist reduction support',['Green tea','Legumes','Resistant starch','Reduce refined carbs']));
+if(bcR&&bcR.bf?.zone&&bcR.bf.zone!=='normal')fp.push(ftrow('Body composition support',['High-protein foods','Cruciferous vegetables','Adequate sleep priority']));
+document.getElementById('r-actfood').innerHTML=fp.length?fp.join(''):'<p style="color:var(--txtM);font-size:var(--text-sm)">Continue balanced whole-foods diet. No critical nutritional gaps identified.</p>';const hi=rows.filter(r=>r.p==='High');
+let actalHtml=hi.length?hi.map(r=>aal('err',r.dom+' - High Priority',r.f+'. Confirm: '+r.t)).join(''):aal('ok','No High-Priority Alerts','All flags at medium or low priority. See confirmatory tests table.');
+if(bcR&&bcR.s>=60)actalHtml+=aal('err','Body composition — high risk','Score '+bcR.s.toFixed(0)+'. Central adiposity and metabolic risk elevated. Recommend clinical review.');
+document.getElementById('r-actal').innerHTML=actalHtml;}
+function calcAll(){const ba=cBioAge(),ox=cOx(),tx=cTx(),mt=cMt(),cr=cCr(),nt=cNt(),sk=cSk(),dg=cDg(),bc=cBc();
+// Expose bcResult on window for exportSessionReport() + store bc zones in zoneData so worstZone() works
+window.bcResult=bc;
+if(!window.zoneData)window.zoneData={};
+if(bc.bmi?.zone)window.zoneData['bc-bmi_zone']=bc.bmi.zone;
+if(bc.wc?.zone) window.zoneData['bc-wc_zone'] =bc.wc.zone;
+if(bc.bf?.zone) window.zoneData['bc-bf_zone'] =bc.bf.zone;
+if(bc.vf?.zone) window.zoneData['bc-vf_zone'] =bc.vf.zone;
+if(bc.whr?.zone)window.zoneData['bc-whr_zone']=bc.whr.zone;
+const GS={ox:ox.s,tx:tx.s,mt:mt.s,cr:cr.s,nt:nt.s,sk:sk.s,dg:dg.s||0,bc:bc.s||0};
 const delta=ba.ba-ba.age;const baCls=delta>10?'cbad':delta>3?'cwarn':'cok';se('r-bav',ba.ba+'y',baCls);se('r-cav',ba.age+'y','cinfo');se('r-del',(delta>=0?'+':'')+delta+'y',delta>0?'cbad':'cok');document.getElementById('r-ba').style.display='block';document.getElementById('r-babars').innerHTML=barPillar('Pillar 1: Metabolic/Vascular',ba.p1,'cwarn')+barPillar('Pillar 2: Oxidative/Toxic',ba.p2,'cbad')+barPillar('Pillar 3: Regenerative Deficits',ba.p3,'cwarn');se('k-ba',ba.ba+'y',baCls);document.getElementById('k-bad').textContent=(delta>=0?'+':'')+delta+'y';
 const oxC=clrc(ox.s,30,60);document.getElementById('r-ox').style.display='block';se('r-oxs',ox.s+'%',oxC);se('r-oxl',lbl(ox.s,30,60),'');se('r-ax',ox.ax+'%',ox.ax>=60?'cok':'cbad');se('r-px',ox.px+'%',ox.px<=40?'cok':'cbad');document.getElementById('r-oxbm').innerHTML='<div class="bml">'+bmr('Glutathione',       ox.gsh, zbs('ox-gsh','res'),(window.zoneData||{})['ox-gsh_zone']||'unknown')+
 bmr('CoQ10',             ox.coq, zbs('ox-coq','res'),(window.zoneData||{})['ox-coq_zone']||'unknown')+
@@ -1551,7 +1695,8 @@ function exportSessionReport() {
     cr: worstZone(['cr-ch','cr-vf','cr-lv','cr-ua','cr-pt','cr-k','cr-mg']),
     nt: worstZone(['nt-zn','nt-mg','nt-k','nt-io','nt-si','nt-b6','nt-vc','nt-d3','nt-ve','nt-fo']),
     sk: worstZone(['sk-sc','sk-el','sk-tw','sk-sb','sk-ml','sk-sn','sk-ec','sk-jc']),
-    dg: worstZone(['dg-lp','dg-la','dg-sp','dg-sa','dg-lc','dg-ca','dg-bi','dg-ip','dg-ds'])
+    dg: worstZone(['dg-lp','dg-la','dg-sp','dg-sa','dg-lc','dg-ca','dg-bi','dg-ip','dg-ds']),
+    bc: worstZone(['bc-bmi','bc-wc','bc-bf','bc-vf','bc-whr'])
   };
 
   // ── Alert extraction ──────────────────────────────────────
@@ -1660,21 +1805,22 @@ function exportSessionReport() {
 
   // ── Priority domains (highest concern first) ──────────────
   const rawScores = {
-    ox: parseInt(oxScore)||0, tx: parseInt(txScore)||0,
-    mt: parseInt(mtScore)||0, cr: parseInt(crScore)||0,
-    nt: parseInt(ntScore)||0, sk: parseInt(skScore)||0,
-    dg: parseInt(dgScore)||0
+    ox: parseInt(oxScore)||0,  tx: parseInt(txScore)||0,
+    mt: parseInt(mtScore)||0,  cr: parseInt(crScore)||0,
+    nt: parseInt(ntScore)||0,  sk: parseInt(skScore)||0,
+    dg: parseInt(dgScore)||0,
+    bc: parseFloat(document.getElementById('r-bcs')?.textContent) || 0
   };
   const domainNames = {
     ba:'Biological Age', ox:'Oxidative Stress', tx:'Toxic Burden',
     mt:'Metabolic Risk', cr:'Cardio-Renal',     nt:'Nutrient Sufficiency',
-    sk:'Skin & Collagen', dg:'Gut / Digestive'
+    sk:'Skin & Collagen', dg:'Gut / Digestive', bc:'Body Composition'
   };
   const priorityDomains = [
-    ['ba', baSyntheticScore], ['ox', rawScores.ox], ['tx', rawScores.tx],
-    ['mt', rawScores.mt],     ['cr', rawScores.cr],
+    ['ba', baSyntheticScore],    ['ox', rawScores.ox],       ['tx', rawScores.tx],
+    ['mt', rawScores.mt],        ['cr', rawScores.cr],
     ['nt', 100 - rawScores.nt], ['sk', 100 - rawScores.sk],
-    ['dg', rawScores.dg]
+    ['dg', rawScores.dg],        ['bc', rawScores.bc]
   ].sort((a,b) => b[1]-a[1]).slice(0,3).map(([k]) => domainNames[k]);
 
   // ── Executive summary ─────────────────────────────────────
@@ -1748,7 +1894,18 @@ ${HRV_BAND_DESC[band] || 'Autonomic status recorded.'}
       nutrient:  { score: parseInt(ntScore)||0, label: ntLabel,       zone: zones.nt },
       skin:      { score: parseInt(skScore)||0, label: skLabel,       zone: zones.sk },
       digestive: { score: parseInt(dgScore)||0, label: dgLabel,       zone: zones.dg,
-                   sub_scores: { motility: dgMt, absorption: dgAb, pressure: dgPi } }
+                   sub_scores: { motility: dgMt, absorption: dgAb, pressure: dgPi } },
+      body_composition: {
+        score:       rawScores.bc,
+        label:       getBcLabel(rawScores.bc),
+        worst_zone:  zones.bc,
+        bmi:         window.bcResult?.bmi      ?? null,
+        waist_cm:    window.bcResult?.wc       ?? null,
+        body_fat_pct:window.bcResult?.bf       ?? null,
+        visceral_fat:window.bcResult?.vf       ?? null,
+        whr:         window.bcResult?.whr      ?? null,
+        bmr_kcal:    window.bcResult?.bmr      ?? null
+      }
     },
     priority_domains: priorityDomains,
     action_plan: {
@@ -1775,18 +1932,19 @@ ${HRV_BAND_DESC[band] || 'Autonomic status recorded.'}
     '  ' + _p('Test Date', 12) + ': ' + testDate,
     '',
     'SESSION',
-    '  ' + _p('Dashboard', 12) + ': v5',
+    '  ' + _p('Dashboard', 12) + ': v6',
     '  ' + _p('Exported',  12) + ': ' + timestamp,
     '',
     'MODULE SCORES',
-    _mRow('Biological Age',   baSyntheticScore,    baStatusLabel, zones.ba),
-    _mRow('Oxidative Stress', parseInt(oxScore)||0, oxLabel,       zones.ox),
-    _mRow('Toxic Burden',     parseInt(txScore)||0, txLabel,       zones.tx),
-    _mRow('Metabolic Health', parseInt(mtScore)||0, mtLabel,       zones.mt),
-    _mRow('Cardio-Renal',     parseInt(crScore)||0, crLabel,       zones.cr),
-    _mRow('Nutrient',         parseInt(ntScore)||0, ntLabel,       zones.nt),
-    _mRow('Skin & Collagen',  parseInt(skScore)||0, skLabel,       zones.sk),
-    _mRow('Gut / Digestive',  parseInt(dgScore)||0, dgLabel,       zones.dg),
+    _mRow('Biological Age',   baSyntheticScore,    baStatusLabel,           zones.ba),
+    _mRow('Oxidative Stress', parseInt(oxScore)||0, oxLabel,                 zones.ox),
+    _mRow('Toxic Burden',     parseInt(txScore)||0, txLabel,                 zones.tx),
+    _mRow('Metabolic Health', parseInt(mtScore)||0, mtLabel,                 zones.mt),
+    _mRow('Cardio-Renal',     parseInt(crScore)||0, crLabel,                 zones.cr),
+    _mRow('Nutrient',         parseInt(ntScore)||0, ntLabel,                 zones.nt),
+    _mRow('Skin & Collagen',  parseInt(skScore)||0, skLabel,                 zones.sk),
+    _mRow('Gut / Digestive',  parseInt(dgScore)||0, dgLabel,                 zones.dg),
+    _mRow('Body Composition', rawScores.bc,          getBcLabel(rawScores.bc), zones.bc),
     '',
     'PRIORITY DOMAINS',
     ...priorityDomains.map((d, i) => '  ' + (i + 1) + '. ' + d),
@@ -1856,6 +2014,23 @@ ${skFindings}
 **Sub-scores:** Motility ${dgMt}% | Absorption ${dgAb}% | Pressure/Integrity ${dgPi}%
 **Findings:**
 ${dgFindings}
+### 9. Body Composition
+**Score:** ${rawScores.bc.toFixed(0)} / 100 — ${getBcLabel(rawScores.bc)}
+**Worst zone:** ${zones.bc}
+
+**Sub-scores:**
+- Central Adiposity Index (CAI): ${window.bcResult?.cai?.toFixed(0) ?? '—'}
+- Body Composition Index (BCI): ${window.bcResult?.bci?.toFixed(0) ?? '—'}
+- Structural Index (STI): ${window.bcResult?.sti?.toFixed(0) ?? '—'}
+
+**Parameters:**
+- BMI: ${window.bcResult?.bmi?.raw?.toFixed(1) ?? '—'} kg/m² (${window.bcResult?.bmi?.zone ?? '—'})
+- Waist circumference: ${window.bcResult?.wc?.raw ?? '—'} cm (${window.bcResult?.wc?.zone ?? '—'})
+- Body fat: ${window.bcResult?.bf?.raw ?? '—'}% (${window.bcResult?.bf?.zone ?? '—'})
+- Visceral fat index: ${window.bcResult?.vf?.raw ?? '—'} (${window.bcResult?.vf?.zone ?? '—'})
+- Waist-height ratio: ${window.bcResult?.whr?.raw?.toFixed(2) ?? '—'} (${window.bcResult?.whr?.zone ?? '—'})
+- Estimated BMR: ${window.bcResult?.bmr?.raw?.toFixed(0) ?? '—'} kcal/day
+
 ---
 
 ## Action Plan
@@ -1943,6 +2118,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   initImportCSV();
   initPdfDrop();
+  _initBcCsvInput();
   // Close export dropdown when clicking outside
   document.addEventListener('click', function(e) {
     const grp = document.getElementById('exp-grp');
@@ -1966,7 +2142,8 @@ const _ALL_FIELDS=[
   'cr-ch','cr-vf','cr-lv','cr-ua','cr-pt','cr-k','cr-mg',
   'nt-zn','nt-mg','nt-k','nt-io','nt-si','nt-b6','nt-vc','nt-d3','nt-ve','nt-fo',
   'sk-sc','sk-el','sk-tw','sk-sb','sk-ml','sk-sn','sk-ec','sk-jc',
-  'dg-lp','dg-la','dg-sp','dg-sa','dg-lc','dg-ca','dg-bi','dg-ip','dg-ds'
+  'dg-lp','dg-la','dg-sp','dg-sa','dg-lc','dg-ca','dg-bi','dg-ip','dg-ds',
+  'bc-gender','bc-age','bc-height','bc-weight','bc-bmi','bc-wc','bc-bf','bc-vf','bc-whr'
 ];
 
 function initImportCSV(){
@@ -2023,10 +2200,12 @@ function _showImportModal(row){
   document.getElementById('im-age').textContent=row.age||'—';
   document.getElementById('im-sex').textContent=row.gender?(row.gender.toLowerCase()==='male'?'Male':'Female'):'—';
   document.getElementById('im-date').textContent=row.test_date||'—';
-  const matched=_ALL_FIELDS.filter(id=>row[id]!==undefined&&row[id]!=='');
-  const missing=_ALL_FIELDS.filter(id=>!row[id]||row[id]==='');
-  const pct=Math.round((matched.length/_ALL_FIELDS.length)*100);
-  document.getElementById('im-count').textContent=matched.length+' / '+_ALL_FIELDS.length;
+  // bc- fields are populated via the separate BodyComp CSV path — exclude from QRMA import counts
+  const _qrmaFields=_ALL_FIELDS.filter(id=>!id.startsWith('bc-'));
+  const matched=_qrmaFields.filter(id=>row[id]!==undefined&&row[id]!=='');
+  const missing=_qrmaFields.filter(id=>!row[id]||row[id]==='');
+  const pct=Math.round((matched.length/_qrmaFields.length)*100);
+  document.getElementById('im-count').textContent=matched.length+' / '+_qrmaFields.length;
   document.getElementById('im-bar').style.width=pct+'%';
   const missEl=document.getElementById('im-miss');
   if(missing.length){
@@ -2041,9 +2220,6 @@ function _showImportModal(row){
 }
 
 function confirmImport(){
-  // DEBUG — retain for development; remove before production release
-  console.log('mode:', _importMode);
-  console.log('payload:', !!_jsonPayload, _jsonPayload ? Object.keys(_jsonPayload) : 'null');
   // JSON import path
   if(_importMode==='json'&&_jsonPayload){
     // Populate window.zoneData BEFORE importFromPayload calls calcAll()
@@ -2234,6 +2410,215 @@ function initPdfDrop(){
     zone.classList.remove('over');
     const f=e.dataTransfer&&e.dataTransfer.files[0];
     if(f) handlePdfUpload(f);
+  });
+}
+
+// =============================================================================
+// BODY COMP INPUT PANEL — JS (Task 3)
+// =============================================================================
+let _bcMode = 'manual';
+let _bcCsvData = null;   // parsed CSV row, set by file input handler
+
+// ── bcSetMode ─────────────────────────────────────────────────────────────
+function bcSetMode(mode) {
+  _bcMode = mode;
+  document.getElementById('bc-mode-manual').classList.toggle('active', mode === 'manual');
+  document.getElementById('bc-mode-csv').classList.toggle('active', mode === 'csv');
+  document.getElementById('bc-manual-section').style.display = mode === 'manual' ? '' : 'none';
+  document.getElementById('bc-csv-section').style.display   = mode === 'csv'    ? '' : 'none';
+}
+
+// ── bcMarkManual — called on direct user edit of an auto field ─────────────
+function bcMarkManual(el) {
+  el.dataset.manual = 'true';
+  const badge = document.getElementById(el.id + '-badge');
+  const reset = document.getElementById(el.id + '-reset');
+  if (badge) badge.style.display = 'none';
+  if (reset) reset.style.display = '';
+}
+
+// ── bcAutoCalc — recalculates derived fields and BMR display ──────────────
+function bcAutoCalc() {
+  const height = parseFloat(document.getElementById('bc-height')?.value) || 0;
+  const weight = parseFloat(document.getElementById('bc-weight')?.value) || 0;
+  const wc     = parseFloat(document.getElementById('bc-wc')?.value)     || 0;
+  const age    = parseFloat(document.getElementById('bc-age')?.value)    || 0;
+  const gender = (document.getElementById('bc-gender')?.value || 'male').trim().toLowerCase();
+
+  // Auto-calc BMI
+  const bmiEl    = document.getElementById('bc-bmi');
+  const bmiBadge = document.getElementById('bc-bmi-badge');
+  const bmiReset = document.getElementById('bc-bmi-reset');
+  if (bmiEl && bmiEl.dataset.manual !== 'true') {
+    if (height > 0 && weight > 0) {
+      const bmiVal = weight / ((height / 100) * (height / 100));
+      bmiEl.value = bmiVal.toFixed(1);
+      if (bmiBadge) bmiBadge.style.display = '';
+      if (bmiReset) bmiReset.style.display = 'none';
+    } else {
+      bmiEl.value = '';
+      if (bmiBadge) bmiBadge.style.display = 'none';
+    }
+  }
+
+  // Auto-calc WHR
+  const whrEl    = document.getElementById('bc-whr');
+  const whrBadge = document.getElementById('bc-whr-badge');
+  const whrReset = document.getElementById('bc-whr-reset');
+  if (whrEl && whrEl.dataset.manual !== 'true') {
+    if (wc > 0 && height > 0) {
+      const whrVal = wc / height;
+      whrEl.value = whrVal.toFixed(3);
+      if (whrBadge) whrBadge.style.display = '';
+      if (whrReset) whrReset.style.display = 'none';
+    } else {
+      whrEl.value = '';
+      if (whrBadge) whrBadge.style.display = 'none';
+    }
+  }
+
+  // Update BMR display
+  const bmrDisp = document.getElementById('bc-bmr-display');
+  if (bmrDisp) {
+    if (height > 0 && weight > 0 && age > 0) {
+      const bmr = (10 * weight) + (6.25 * height) - (5 * age) + (gender === 'female' ? -161 : 5);
+      bmrDisp.textContent = Math.round(bmr) + ' kcal/day';
+    } else {
+      bmrDisp.textContent = '—';
+    }
+  }
+}
+
+// ── bcResetAuto — clears manual override, re-runs auto-calc ───────────────
+function bcResetAuto(fieldId) {
+  const el = document.getElementById(fieldId);
+  if (el) { el.dataset.manual = 'false'; el.value = ''; }
+  const reset = document.getElementById(fieldId + '-reset');
+  if (reset) reset.style.display = 'none';
+  bcAutoCalc();
+}
+
+// ── bcParseCsv — pure, returns object mapping DOM ids to values ───────────
+function bcParseCsv(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return null;
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  const values  = lines[1].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+  const row = {};
+  headers.forEach((h, i) => { row[h] = values[i] || ''; });
+
+  // Column → DOM field ID mapping
+  const colMap = {
+    'gender':             'bc-gender',
+    'age':                'bc-age',
+    'height_cm':          'bc-height',
+    'weight_kg':          'bc-weight',
+    'bmi':                'bc-bmi',
+    'waist_cm':           'bc-wc',
+    'body_fat_pct':       'bc-bf',
+    'visceral_fat_index': 'bc-vf',
+    'whr':                'bc-whr'
+  };
+
+  const result = { fields: {}, matched: 0, total: Object.keys(colMap).length };
+  Object.entries(colMap).forEach(([col, domId]) => {
+    if (row[col] !== undefined && row[col] !== '') {
+      result.fields[domId] = row[col];
+      result.matched++;
+    }
+  });
+  return result;
+}
+
+// ── bcConfirmCsv — populates DOM from parsed CSV, then calcAll ─────────────
+function bcConfirmCsv() {
+  if (!_bcCsvData || !_bcCsvData.fields) return;
+  const f = _bcCsvData.fields;
+
+  // Gender select — handle string values
+  if (f['bc-gender']) {
+    const gv = f['bc-gender'].toLowerCase().trim();
+    const sel = document.getElementById('bc-gender');
+    if (sel) sel.value = (['female','f','wanita','perempuan'].includes(gv)) ? 'female' : 'male';
+  }
+
+  // Numeric fields
+  ['bc-age','bc-height','bc-weight','bc-wc','bc-bf','bc-vf'].forEach(id => {
+    if (f[id] !== undefined) {
+      const el = document.getElementById(id);
+      if (el) el.value = parseFloat(f[id]) || '';
+    }
+  });
+
+  // BMI — if present in CSV, mark as manual override
+  if (f['bc-bmi'] !== undefined && f['bc-bmi'] !== '') {
+    const el = document.getElementById('bc-bmi');
+    if (el) { el.value = parseFloat(f['bc-bmi']) || ''; el.dataset.manual = 'true'; }
+    const reset = document.getElementById('bc-bmi-reset');
+    if (reset) reset.style.display = '';
+  }
+
+  // WHR — if present in CSV, mark as manual override
+  if (f['bc-whr'] !== undefined && f['bc-whr'] !== '') {
+    const el = document.getElementById('bc-whr');
+    if (el) { el.value = parseFloat(f['bc-whr']) || ''; el.dataset.manual = 'true'; }
+    const reset = document.getElementById('bc-whr-reset');
+    if (reset) reset.style.display = '';
+  }
+
+  // Re-run auto-calc for any missing auto fields
+  bcAutoCalc();
+  // Switch to manual view so results are visible
+  bcSetMode('manual');
+  calcAll();
+}
+
+// ── bcDownloadTemplate ─────────────────────────────────────────────────────
+function bcDownloadTemplate() {
+  const header = 'gender,age,height_cm,weight_kg,bmi,waist_cm,body_fat_pct,visceral_fat_index,whr';
+  const example = 'male,35,170,75,,88,22,8,';
+  const csv = header + '\n' + example + '\n';
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'body_comp_template.csv';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── CSV file input handler (wired on DOMContentLoaded) ────────────────────
+function _initBcCsvInput() {
+  const fi = document.getElementById('bc-csv-input');
+  if (!fi) return;
+  fi.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        _bcCsvData = bcParseCsv(ev.target.result);
+        const preview = document.getElementById('bc-csv-preview');
+        const confirm = document.getElementById('bc-csv-confirm');
+        if (!_bcCsvData) {
+          if (preview) { preview.style.display = ''; preview.textContent = 'Could not parse file. Check format and try again.'; preview.style.color = 'var(--err)'; }
+          if (confirm) confirm.style.display = 'none';
+          return;
+        }
+        if (preview) {
+          preview.style.display = '';
+          preview.style.color = '';
+          preview.innerHTML = '<strong>' + _bcCsvData.matched + ' of ' + _bcCsvData.total + ' fields matched</strong>';
+        }
+        if (confirm) confirm.style.display = '';
+        lucide.createIcons();
+      } catch(err) {
+        const preview = document.getElementById('bc-csv-preview');
+        if (preview) { preview.style.display = ''; preview.textContent = 'Error reading file: ' + err.message; }
+      }
+    };
+    reader.readAsText(file);
+    this.value = '';
   });
 }
 
