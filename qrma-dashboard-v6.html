@@ -561,8 +561,8 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
       <div class="igrp"><label class="ilb" for="cr-lv" data-label-key="cr-lv">LV Ejection Resistance <span class="hint">(0-10)</span></label><input class="ifd" type="number" id="cr-lv" value="5.2" step="0.1" min="0" max="10"><div class="irg">Normal: &lt;5.0 | Confirm: ECG</div></div>
       <div class="igrp"><label class="ilb" for="cr-ua" data-label-key="cr-ua">Uric Acid <span class="hint">(0-10)</span></label><input class="ifd" type="number" id="cr-ua" value="5.8" step="0.1" min="0" max="10"><div class="irg">Normal: 3.5-7.2 | Confirm: serum UA</div></div>
       <div class="igrp"><label class="ilb" for="cr-pt" data-label-key="cr-pt">Proteinuria Index <span class="hint">(0-10)</span></label><input class="ifd" type="number" id="cr-pt" value="3.2" step="0.1" min="0" max="10"><div class="irg">Normal: &lt;3.0 | Confirm: urinalysis, uACR</div></div>
-      <div class="igrp"><label class="ilb" for="cr-k" data-label-key="cr-k">Potassium <span class="hint">(0-10)</span></label><input class="ifd" type="number" id="cr-k" value="5.2" step="0.1" min="0" max="10"><div class="irg">Normal: 4.5-7.0 | Confirm: serum electrolytes</div></div>
-      <div class="igrp"><label class="ilb" for="cr-mg" data-label-key="cr-mg">Magnesium <span class="hint">(0-10)</span></label><input class="ifd" type="number" id="cr-mg" value="4.8" step="0.1" min="0" max="10"><div class="irg">Normal: 5.0-7.5</div></div>
+      <div class="igrp"><label class="ilb" for="cr-k" data-label-key="cr-k">Potassium <span class="hint">(0-10)</span></label><input class="ifd" type="number" id="cr-k" value="0.838" step="0.001" min="0" max="10"><div class="irg">Normal: 0.689-0.987 | Confirm: serum electrolytes</div></div>
+      <div class="igrp"><label class="ilb" for="cr-mg" data-label-key="cr-mg">Magnesium <span class="hint">(0-10)</span></label><input class="ifd" type="number" id="cr-mg" value="0.780" step="0.001" min="0" max="10"><div class="irg">Normal: 0.568-0.992</div></div>
     </div>
     <div class="bgrp"><button class="btn btnp" onclick="calcAll()" data-ui-key="calculate_all"><i data-lucide="calculator" width="16" height="16"></i> Calculate</button></div>
   </div>
@@ -570,8 +570,8 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
     <div class="ptit" style="margin-bottom:var(--sp4)"><i data-lucide="heart-pulse" width="18" height="18"></i> Cardio-Renal Strain Score</div>
     <div class="srow">
       <div class="sc"><div class="sclb">CR Strain</div><div class="scval" id="r-crs">--</div><div class="scdesc" id="r-crl">--</div></div>
-      <div class="sc"><div class="sclb">Cardiac Index</div><div class="scval" id="r-cai">--</div><div class="scdesc">Vascular+LV+Cholesterol</div></div>
-      <div class="sc"><div class="sclb">Renal Index</div><div class="scval" id="r-ri">--</div><div class="scdesc">Proteinuria+Uric acid</div></div>
+      <div class="sc"><div class="sclb">Cardiac Index</div><div class="scval" id="r-cai">--</div><div class="scdesc" id="r-cai-desc">Vascular+LV+Cholesterol</div></div>
+      <div class="sc"><div class="sclb">Renal Index</div><div class="scval" id="r-ri">--</div><div class="scdesc" id="r-ri-desc">Proteinuria+Uric acid</div></div>
     </div>
     <div id="r-cral" style="margin-top:var(--sp4)"></div>
   </div>
@@ -1672,8 +1672,8 @@ function computeAllZones() {
   set('cr-lv',  'hi',  null,  5.0  );
   set('cr-ua',  'bi',  3.5,   7.2  );
   set('cr-pt',  'hi',  null,  3.0  );
-  set('cr-k',   'bi',  4.5,   7.0  );
-  set('cr-mg',  'bi',  5.0,   7.5  );
+  set('cr-k',   'bi',  0.689, 0.987);
+  set('cr-mg',  'bi',  0.568, 0.992);
   // ── Nutrient ─────────────────────────────────────────────────────────────
   set('nt-zn',  'bi',  1.143, 1.989);
   set('nt-mg',  'bi',  0.568, 0.992);
@@ -1706,6 +1706,35 @@ function computeAllZones() {
   set('dg-ds',  'bi',  3.5,   4.7  );
 }
 
+function renderCrBreakdown(){
+  const zd=window.zoneData||{};
+  const lang=(typeof currentLang!=='undefined')?currentLang:'id';
+  const nm=(en,id_)=>lang==='en'?en:id_;
+  const zl=z=>typeof bcZoneLabel==='function'?bcZoneLabel(z):(z||'—');
+  const cardiac=[
+    {label:nm('Vascular','Vaskular'),       zone:zd['cr-vf_zone']},
+    {label:nm('LV Resistance','Ejeksi LV'), zone:zd['cr-lv_zone']},
+    {label:nm('Cholesterol','Kolesterol'),  zone:zd['cr-ch_zone']}
+  ];
+  const renal=[
+    {label:nm('Uric Acid','Asam Urat'),  zone:zd['cr-ua_zone']},
+    {label:nm('Proteinuria','Proteinuria'),zone:zd['cr-pt_zone']},
+    {label:nm('Potassium','Kalium'),      zone:zd['cr-k_zone']},
+    {label:nm('Magnesium','Magnesium'),   zone:zd['cr-mg_zone']}
+  ];
+  function fmtBreakdown(params){
+    return params.map(p=>{
+      const z=p.zone||'unknown';
+      const col=z==='berat'?'#a13544':z==='sedang'?'#d19900':z==='ringan'?'#6b7c3e':'#437a22';
+      return '<span style="white-space:nowrap">'+p.label+': <strong style="color:'+col+'">'+zl(z)+'</strong></span>';
+    }).join(' &nbsp;·&nbsp; ');
+  }
+  const cDesc=document.getElementById('r-cai-desc');
+  const rDesc=document.getElementById('r-ri-desc');
+  if(cDesc) cDesc.innerHTML=fmtBreakdown(cardiac);
+  if(rDesc) rDesc.innerHTML=fmtBreakdown(renal);
+}
+
 function calcAll(){computeAllZones();const ba=cBioAge(),ox=cOx(),tx=cTx(),mt=cMt(),cr=cCr(),nt=cNt(),sk=cSk(),dg=cDg(),bc=cBc();
 // Expose bcResult on window for exportSessionReport() + store bc zones in zoneData so worstZone() works
 window.bcResult=bc;
@@ -1725,7 +1754,10 @@ bmr('Selenium',          ox.sel, zbs('ox-sel','res'),(window.zoneData||{})['ox-s
 bmr('Skin Free Radicals',ox.fr,  zbs('ox-fr', 'brdn'),(window.zoneData||{})['ox-fr_zone']||'unknown')+'</div>';document.getElementById('r-oxf').innerHTML=ftrow('Antioxidant Foods',['Spinach','Broccoli','Berries','Green Tea','Citrus (Vit C)','Almonds','Sunflower Seeds (Vit E)','Brazil Nuts (Selenium)']);se('k-ox',ox.s+'%',oxC);document.getElementById('k-oxl').textContent=lbl(ox.s,30,60);
 const txC=clrc(tx.s,25,50);document.getElementById('r-tx').style.display='block';se('r-txs',tx.s+'%',txC);se('r-txl',lbl(tx.s,25,50),'');se('r-hm',tx.hm+'',tx.hm<=10?'cok':tx.hm<=30?'cwarn':'cbad');se('r-lbi',tx.lb+'',tx.lb<=15?'cok':tx.lb<=30?'cwarn':'cbad');const txA=[];if(tx.pb>1.2)txA.push(aal('err','Elevated Lead Signal','Confirm: Whole blood lead level (BLL). Do not conclude without lab.'));if(tx.hg>.5)txA.push(aal('err','Elevated Mercury Signal','Confirm: Blood mercury, urine mercury speciation.'));if(tx.cd>.5)txA.push(aal('warn','Cadmium Borderline','Confirm: Urine cadmium (first-morning void).'));if(tx.as_>.4)txA.push(aal('warn','Arsenic Borderline','Confirm: Urine arsenic, speciated inorganic.'));if(!txA.length)txA.push(aal('ok','No Critical Heavy Metal Flags','Signals within normal reference ranges.'));document.getElementById('r-txal').innerHTML=txA.join('');se('k-tx',tx.s+'%',txC);document.getElementById('k-txl').textContent=lbl(tx.s,25,50);
 const mtC=clrc(mt.s,30,60);document.getElementById('r-mt').style.display='block';se('r-mts',mt.s+'%',mtC);se('r-mtl',lbl(mt.s,30,60),'');se('r-gc',mt.gc+'%',mt.gc<=20?'cok':mt.gc<=40?'cwarn':'cbad');se('r-lp',mt.lp+'%',mt.lp<=20?'cok':mt.lp<=40?'cwarn':'cbad');const mtA=[];if(mt.ug>6.1)mtA.push(aal('warn','Elevated Glucose Signal','Confirm: FPG, HbA1c.'));if(mt.ins<3)mtA.push(aal('warn','Low Insulin Secretion Signal','Confirm: Fasting insulin, C-peptide, HOMA-IR.'));if(mt.tg>5)mtA.push(aal('warn','Elevated Triglyceride Pattern','Confirm: Full fasting lipid panel.'));if(mt.bmi>25)mtA.push(aal('info','Elevated BMI','Consider waist-to-height ratio and body composition.'));if(!mtA.length)mtA.push(aal('ok','Metabolic Profile Within Range','No significant flags at this time.'));document.getElementById('r-mtal').innerHTML=mtA.join('');se('k-mt',mt.s+'%',mtC);document.getElementById('k-mtl').textContent=lbl(mt.s,30,60);
-const crC=clrc(cr.s,30,60);document.getElementById('r-cr').style.display='block';se('r-crs',cr.s+'%',crC);se('r-crl',lbl(cr.s,30,60),'');se('r-cai',cr.cai+'%',cr.cai<=20?'cok':cr.cai<=40?'cwarn':'cbad');se('r-ri',cr.ri+'%',cr.ri<=20?'cok':cr.ri<=40?'cwarn':'cbad');const crA=[];if(cr.ch>50)crA.push(aal('warn','Elevated Cholesterol Signal','Confirm: Fasting lipid panel, ApoB.'));if(cr.vf<6)crA.push(aal('warn','Reduced Vascular Flexibility','Confirm: BP monitoring (ABPM), ABI.'));if(cr.pt>3)crA.push(aal('err','Proteinuria Signal Elevated','Confirm: Urinalysis, uACR, serum creatinine, eGFR.'));if(cr.ua>7.2)crA.push(aal('warn','Elevated Uric Acid Pattern','Confirm: Serum uric acid.'));if(!crA.length)crA.push(aal('ok','Cardio-Renal Signals Within Range','No critical strain flags detected.'));document.getElementById('r-cral').innerHTML=crA.join('');se('k-cr',cr.s+'%',crC);document.getElementById('k-crl').textContent=lbl(cr.s,30,60);
+const crC=clrc(cr.s,30,60);document.getElementById('r-cr').style.display='block';se('r-crs',cr.s+'%',crC);se('r-crl',lbl(cr.s,30,60),'');se('r-cai',cr.cai+'%',cr.cai<=20?'cok':cr.cai<=40?'cwarn':'cbad');
+  se('r-ri', cr.ri+'%', cr.ri<=20?'cok':cr.ri<=40?'cwarn':'cbad');
+  renderCrBreakdown();
+  const crA=[];if(cr.ch>50)crA.push(aal('warn','Elevated Cholesterol Signal','Confirm: Fasting lipid panel, ApoB.'));if(cr.vf<6)crA.push(aal('warn','Reduced Vascular Flexibility','Confirm: BP monitoring (ABPM), ABI.'));if(cr.pt>3)crA.push(aal('err','Proteinuria Signal Elevated','Confirm: Urinalysis, uACR, serum creatinine, eGFR.'));if(cr.ua>7.2)crA.push(aal('warn','Elevated Uric Acid Pattern','Confirm: Serum uric acid.'));if(!crA.length)crA.push(aal('ok','Cardio-Renal Signals Within Range','No critical strain flags detected.'));document.getElementById('r-cral').innerHTML=crA.join('');se('k-cr',cr.s+'%',crC);document.getElementById('k-crl').textContent=lbl(cr.s,30,60);
 const ntC=nt.s>=70?'cok':nt.s>=50?'cwarn':'cbad';const ntL=nt.s>=70?'Sufficient':nt.s>=50?'Borderline':'Deficient';document.getElementById('r-nt').style.display='block';se('r-nts',nt.s+'%',ntC);se('r-ntl',ntL,'');se('r-ntdef',nt.def+'','cbad');se('r-ntopt',nt.opt+'','cok');document.getElementById('r-ntbm').innerHTML='<div class="bml">'+nt.items.map(i=>bmr(i.n,i.v,i.zone==='normal'?'normal':i.zone==='ringan'?'borderline':'deficient',i.zone)).join('')+'</div>';document.getElementById('r-ntf').innerHTML=ftrow('Nutrient-Rich Foods',['Pumpkin Seeds (Zinc)','Dark Greens (Mg, Folate)','Bananas (K)','Seaweed (Iodine)','Salmon (D3, B6)','Chickpeas (Folate)','Sunflower Seeds (E)','Citrus (C)']);se('k-nt',nt.s+'%',ntC);document.getElementById('k-ntl').textContent=ntL;
 const skC=sk.s>=70?'cok':sk.s>=50?'cwarn':'cbad';const skL=sk.s>=70?'Resilient':sk.s>=50?'Moderate Concern':'Low Resilience';document.getElementById('r-sk').style.display='block';se('r-sks',sk.s+'%',skC);se('r-skl',skL,'');se('r-cli',sk.cl+'%',sk.cl>=70?'cok':sk.cl>=50?'cwarn':'cbad');se('r-bfi',sk.bf+'%',sk.bf>=70?'cok':sk.bf>=50?'cwarn':'cbad');document.getElementById('r-skbm').innerHTML='<div class="bml">'+bmr('Skin Collagen',     sk.sc, zbs('sk-sc','res'),(window.zoneData||{})['sk-sc_zone']||'unknown')+
 bmr('Skin Elasticity',   sk.el, zbs('sk-el','res'),(window.zoneData||{})['sk-el_zone']||'unknown')+
@@ -2362,6 +2394,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (typeof renderHrvPanel === 'function') renderHrvPanel();
       if (typeof bcRefreshLabels === 'function') bcRefreshLabels();
+      if (document.getElementById('r-cai-desc')?.innerHTML.includes('<strong>')) renderCrBreakdown();
       document.querySelectorAll('[data-gauge-label]').forEach(el => {
         const key = el.dataset.gaugeKey;
         if (key && typeof HRV_BAND_LABELS !== 'undefined') {
