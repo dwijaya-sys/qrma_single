@@ -1,5 +1,5 @@
 # QRMA Dashboard — Project Master Map
-**Last updated:** 2026-06-04 — v6.0 Body Composition module shipped; audit_v5.md complete; all B1/B7 backlog items closed  
+**Last updated:** 2026-06-04 — B3 Phase 1 (label translation), zone engine fix (computeAllZones), Bio Age live-zone fix, dg-redflag removal  
 **Compiled from:** CLAUDE.md, CHANGELOG.md, audit_v5.md, v5_orientation.md, hrv-flask-session-handover.md, hrv_logic_layer_handover.md, hrv-integration-next-ai-handover.md, current_run.yaml  
 **Purpose:** Single file an AI session or developer reads first. Replaces need to reconcile 5+ context docs.
 
@@ -25,11 +25,11 @@
 
 ```
 Date:          2026-06-04
-Active build:  v6.0 — COMPLETE (Body Composition module shipped 2026-06-04)
-Active HTML:   qrma-dashboard-v6.html  (2,638 lines)
-Last QA:       Automated self-check — all passes (Tasks 1–5 + cosmetic fixes)
-Last hotfix:   Recursive renderHrvPanel wrapper removed; drawCharts extended to 8 domains
-Next build:    Build 3c — parser + CSV pipeline for bc-* fields; batch runner extension
+Active build:  v6.1 — Zone engine fix + B3 Phase 1 label translation
+Active HTML:   qrma-dashboard-v6.html  (2,892 lines)
+Last QA:       Automated self-check — all passes (zone fix, bio age fix, B3 Phase 1)
+Last hotfix:   computeAllZones() + liveZone() — all modules now read live DOM values
+Next build:    Build 3 cont — B3 Phase 2 (bmr() span labels), B3 Phase 3 (mappings.json en_display/id_display)
 ```
 
 ### Build History (condensed)
@@ -45,6 +45,11 @@ Next build:    Build 3c — parser + CSV pipeline for bc-* fields; batch runner 
 | 2026-06-03 | v5.0 — Module 9 | Complete ✓ | `qrma-dashboard-v5.html` — Digestive module, 9-axis radar, parser fixes |
 | 2026-06-03 | FIX 5 | Complete ✓ | `hrv-engine.js` v1.1.3 — `window.hrvState` bridge; HRV block now appears in MD + TXT exports |
 | 2026-06-04 | v6.0 — Module 10 | Complete ✓ | `qrma-dashboard-v6.html` — Body Composition module, 8-axis charts, export section 9, bcRefreshLabels |
+| 2026-06-04 | B3 Phase 1 | Complete ✓ | `field_labels.js` + `applyLabels()` — bilingual field/UI/module labels wired to language toggle |
+| 2026-06-04 | Zone engine fix | Complete ✓ | `computeAllZones()` + `liveZone()` + `set()` — all 55 module fields now compute live zones; cMt() female waist override; bmiP/wcP zone-based |
+| 2026-06-04 | Bio Age zone fix | Complete ✓ | `cBioAge()` self-computes zones for all 18 Bio Age fields from raw DOM values; writes back to window.zoneData |
+| 2026-06-04 | dg-redflag removal | Complete ✓ | Alarm-symptoms checkbox removed by design decision; cDg() and buildAction() cleaned of all redFlag references |
+| 2026-06-04 | Digestive strip i18n | Complete ✓ | "Digestive Pattern Flagged" / "Pola Pencernaan Terdeteksi" bilingual; `renderHrvStrip_Digestive()` re-renders on language toggle |
 
 ---
 
@@ -54,10 +59,12 @@ Next build:    Build 3c — parser + CSV pipeline for bc-* fields; batch runner 
 
 | File | Version | Role |
 |---|---|---|
-| `qrma-dashboard-v6.html` | v6 | **ACTIVE** single-file dashboard app — 10 modules + HRV, 2,638 lines |
+| `qrma-dashboard-v6.html` | v6.1 | **ACTIVE** single-file dashboard app — 10 modules + HRV, 2,892 lines |
 | `03_Scripts/server.py` | — | Flask microserver — PDF drop → pipeline → browser |
 | `03_Scripts/hrv-engine.js` | v1.1.3 | HRV logic module + all strip renderers + window.hrvState bridge |
-| `03_Scripts/zone-scoring.js` | v1.1 | Zone-to-score + language module (default EN) |
+| `03_Scripts/zone-scoring.js` | v1.1 | Zone-to-score + language module (default EN) — **unmodified by zone fix** |
+| `03_Scripts/field_labels.js` | v1.0 | **NEW** — bilingual label lookup table; sets `window.QRMA_LABELS`; generated from `field_labels.json` |
+| `03_Scripts/field_labels.json` | v1.0 | **NEW** — source-of-truth for EN/ID/MS/VI/TH field labels; edit this, then regenerate `.js` |
 | `03_Scripts/importer.js` | v1.5.1 | JSON importer adapter (IIFE: QRMAImporter) |
 | `03_Scripts/csv_exporter_v2.py` | v2 | PDF → CSV (imports from parser_v3) |
 | `03_Scripts/json_exporter.py` | — | CSV → JSON payload for browser |
@@ -67,11 +74,13 @@ Next build:    Build 3c — parser + CSV pipeline for bc-* fields; batch runner 
 
 **Script load order in `<head>` — must be preserved:**
 ```html
+<script src="03_Scripts/field_labels.js"></script>   <!-- sets window.QRMA_LABELS -->
 <script src="03_Scripts/zone-scoring.js"></script>
 <script src="03_Scripts/hrv-engine.js"></script>
 <script src="03_Scripts/importer.js"></script>
 <!-- inline <script> block last -->
 ```
+`field_labels.js` must load before the inline block so `applyLabels()` has `window.QRMA_LABELS` available on `DOMContentLoaded`.
 
 ### 3.2 Superseded Files (keep, do not use)
 
@@ -183,13 +192,17 @@ Reversing this order causes `NameError`. This is a known bug pattern.
 | `window.hrvState` not readable by `exportSessionReport()` | **Fixed FIX 5** | `window.hrvState` bridge in hrv-engine.js v1.1.3 |
 | CSS tokens `--card`, `--rad` in HRV balance card | **Fixed v6.0** | Replaced with `--surf2`, `--rlg` |
 | Gut redflag alert `class="abox aerr"` | **Fixed v6.0** | Corrected to `class="aal aerr"` |
-| `dg-redflag` checkbox missing from Gut input panel | **Fixed v6.0** | Checkbox added with correct `id="dg-redflag"` |
+| `dg-redflag` checkbox (alarm symptoms) in Gut panel | **Removed by design** | Checkbox, result panel, cDg() redFlag path, and all buildAction() redFlag branches fully removed — not a data field, not in PDF |
 | Gut/Digestive fields missing from `_ALL_FIELDS` | **Fixed v6.0** | All 9 `dg-*` fields added |
 | Lucide CDN unpinned (`@latest`) | **Fixed v6.0** | Pinned to `@0.344.0` |
 | Recursive `renderHrvPanel` wrapper in v6 scaffold | **Fixed v6.0** | Removed wrapper; `renderHrvStrip_BodyComp()` called directly in `calcAll()` |
 | Debug `console.log` calls in `confirmImport()` | **Fixed v6.0** | Removed (were labelled for removal before production) |
 | bc-* fields inflate QRMA import modal "not found" count | **Fixed v6.0** | `_showImportModal` filters `bc-` prefix before counting — denominator is 73 (not 82) |
 | `buildAction()` 4th column text muted grey | **Fixed v6.0** | Color set to `#000000` |
+| **All module scorers read stale `window.zoneData`** | **Fixed v6.1** | `computeAllZones()` called at start of `calcAll()` — reads all 55 module fields live from DOM; `liveZone()` and `set()` at module scope. Manual edits now immediately reflected in all module scores. |
+| **Bio Age pillar bars stuck on import-era zones** | **Fixed v6.1** | `cBioAge()` self-computes zones for all 18 Bio Age fields via inline `BIO_THR` table + `rawToZone()`, writes back to `window.zoneData`. No longer reads stale CSV-import zones. |
+| **`cMt()` bmiP/wcP ignored zones** | **Fixed v6.1** | `bmiP`/`wcP` now use `bd('mt-bmi')` and `bd('mt-wc')` zone burden; female waist threshold (hi=80 cm) applied via `liveZone()` override before scoring. |
+| **"Digestive Pattern Flagged" hardcoded in English** | **Fixed v6.1** | Both `calcAll()` render and new `renderHrvStrip_Digestive()` function use `currentLang` to select EN/ID strings. Language toggle calls `renderHrvStrip_Digestive()` to refresh live. |
 
 ---
 
@@ -219,19 +232,28 @@ Reversing this order causes `NameError`. This is a known bug pattern.
 ### 5.2 Scoring Functions
 
 ```javascript
+computeAllZones()   // NEW (v6.1) — reads all 55 module fields live from DOM; writes window.zoneData
+liveZone(val, dir, lo, hi)  // NEW (v6.1, module scope) — converts raw value to zone string
+set(id, dir, lo, hi)        // NEW (v6.1, module scope) — DOM read + liveZone + window.zoneData write
+
 cBioAge()   // Zone burden → weighted 3-pillar bio age offset
+            //   UPDATED (v6.1): self-computes zones for all 18 Bio Age fields via BIO_THR table;
+            //   writes back to window.zoneData — no longer reads stale import zones
 cOx()       // ax (antioxidant reserve) + px (pro-oxidant load)
 cTx()       // hm (heavy metals) + lb (lifestyle burden)
 cMt()       // gc (glycemic) + lp (lipid) — QRMA signals only (bc-* now in separate cBc())
+            //   UPDATED (v6.1): bmiP/wcP use zone-based bd(); female waist override via liveZone()
 cCr()       // cai (cardiac) + ri (renal)
 cNt()       // resilience — avg zone score × 10 nutrients
 cSk()       // resilience — cl (collagen) + bf (barrier) + sn
 cDg()       // mt (motility 40%) + ab (absorption 35%) + pi (pressure 25%) — see §5.8
+            //   UPDATED (v6.1): redFlag path removed entirely
 cBc()       // risk — cai (waist+whr 40%) + bci (bf+vf 35%) + sti (bmi 25%) — see §5.7
-calcAll()   // master orchestrator — calls all above, sets window.bcResult, then renderHrvPanel()
+calcAll()   // master orchestrator — first line now: computeAllZones(); then calls all above,
+            //   sets window.bcResult, then renderHrvPanel()
 ```
 
-All scoring is zone-driven (v3+). No raw numeric thresholds in module scoring functions.  
+All scoring is zone-driven (v3+). All 55 module fields now compute zones live from DOM on every `calcAll()` call via `computeAllZones()`. The 18 Bio Age fields additionally compute zones inside `cBioAge()` using the `BIO_THR` threshold table.  
 `buildAction()` bc entries use zone-based logic. Legacy QRMA entries still use raw numeric thresholds — zone-gate migration deferred (B2).
 
 ### 5.3 Zone System
@@ -516,7 +538,11 @@ renderHrvStrip_Metabolic()   // hrv-strip-mt
 renderHrvStrip_Cardio()      // hrv-strip-cr
 renderHrvStrip_Nutrient()    // hrv-strip-nt
 renderHrvStrip_Skin()        // hrv-strip-sk
-renderHrvStrip_Digestive()   // hrv-strip-dg
+renderHrvStrip_Digestive()   // hrv-strip-dg  ← ALSO now inline in HTML (v6.1): re-renders
+                              //   r-dgal with bilingual "Digestive Pattern Flagged" string
+                              //   on language toggle — calls cDg() live. hrv-engine.js
+                              //   version remains the original; HTML version overrides only
+                              //   the r-dgal text node, not the HRV strip element.
 // BodyComp strip renderer (inline in v6 HTML — keeps hrv-engine.js unmodified):
 renderHrvStrip_BodyComp()    // hrv-strip-bc
 ```
@@ -640,7 +666,7 @@ Consolidated from all CHANGELOG deferred blocks. Ordered by estimated priority.
 |---|---|---|---|
 | B1 | ~~**Body comp manual input panel + cBc() module**~~ | **COMPLETE 2026-06-04** — Standalone `cBc()` scoring engine, manual input panel with CSV import path, export section 9, buildAction() entries, bilingual zone labels, 8-domain charts. See §5.7. | ✓ Done |
 | B2 | **buildAction() zone gates for QRMA entries** | Legacy QRMA alert rows still use raw numeric thresholds — migrate to zone-based logic to match module scores | Build 3 |
-| B3 | **Parameter name translation (ID/EN display labels)** | Add `en_display`/`id_display` to mappings.json, update bmr() spans + language toggle | Build 3 |
+| B3 | **Parameter name translation (ID/EN display labels)** | **Phase 1 COMPLETE 2026-06-04** — `field_labels.js` + `window.QRMA_LABELS` + `applyLabels(lang)` wired to language toggle and DOMContentLoaded. Covers all field labels (`data-label-key`), UI strings (`data-ui-key`), and module titles (`data-module-key`) across all 10 modules. Phase 2: update `bmr()` spans (still hardcoded English). Phase 3: `en_display`/`id_display` in mappings.json. | Build 3 cont |
 | B4 | ~~**Export Report HRV block**~~ | **COMPLETE 2026-06-03** — HRV section present in MD + TXT when hrvState populated. | ✓ Done |
 | B5 | ~~**Export Report format toggle (MD/TXT)**~~ | **COMPLETE 2026-06-03** — MD + TXT both verified for all 8 modules including HRV and Digestive. | ✓ Done |
 | B6 | **sk-tw direction ambiguity** | Zone direction under investigation — flagged by Reviewer in run_ridwan_20260528 | Investigate |
@@ -757,7 +783,16 @@ Transition: --tr
 
 ```
 CONFIG / CONSTANTS      thresholds, pillar weights, module metadata
-SCORE ENGINE            cBioAge, cOx, cTx, cMt, cCr, cNt, cSk, cDg, cBc, calcAll
+ZONE ENGINE (v6.1)      liveZone(val, dir, lo, hi)   — raw value → zone string (module scope)
+                        set(id, dir, lo, hi)          — DOM read + liveZone + window.zoneData write
+                        computeAllZones()             — calls set() for all 55 module fields;
+                                                        called as first line of calcAll()
+LANGUAGE (B3 Phase 1)   applyLabels(lang)             — applies QRMA_LABELS translations to
+                                                        data-label-key / data-ui-key / data-module-key
+                        renderHrvStrip_Digestive()    — re-renders r-dgal with bilingual alert text
+SCORE ENGINE            cBioAge (+ BIO_THR table, rawToZone — live zone self-computation)
+                        cOx, cTx, cMt (zone-based bmiP/wcP + female override), cCr, cNt, cSk,
+                        cDg (redFlag path removed), cBc, calcAll (computeAllZones first)
 BC HELPERS              getBcLabel, bcZoneLabel, bcRefreshLabels
 BC INPUT PANEL          bcSetMode, bcAutoCalc, bcMarkManual, bcResetAuto,
                         bcParseCsv, bcConfirmCsv, bcDownloadTemplate, _initBcCsvInput
@@ -791,6 +826,8 @@ HRV STRIP (v6 inline)   renderHrvStrip_BodyComp, renderHrvPanel (extends hrv-eng
 9. Windows shell limitation: cannot run multi-line `python -c` commands — wrap into a single line or write to a `.py` file first.
 10. When in doubt about current state, check `CHANGELOG.md` — it is the most reliable timeline.
 11. **`window.hrvState` bridge rule:** `hrv-engine.js` uses `let hrvState` (script scope). Any function outside that script that needs to read HRV state must use `window.hrvState`, which is kept in sync by `ingestHrv()`. Never read `hrvState` directly from the HTML inline script — it will always be undefined.
+12. **Zone engine rule (v6.1+):** `computeAllZones()` runs at the very start of `calcAll()` and overwrites all 55 module field zones in `window.zoneData` from live DOM values. Do not manually set `window.zoneData` for module fields outside of `computeAllZones()` — edits will be overwritten on the next `calcAll()` call. Exception: `cBioAge()` additionally writes its 18 Bio Age fields (unprefixed IDs like `bv_zone`) which are separate keys not written by `computeAllZones()`. Exception: `cBc()` writes `bc-*` zones after `calcAll()` has already run.
+13. **Label translation rule (B3 Phase 1+):** All visible field, UI, and module title strings that need bilingual support must carry a `data-label-key`, `data-ui-key`, or `data-module-key` attribute. Add the translation entry to `field_labels.json` first, then regenerate `field_labels.js` by copying the JSON content into the `window.QRMA_LABELS = {...}` assignment. Never edit `field_labels.js` directly.
 
 ---
 
