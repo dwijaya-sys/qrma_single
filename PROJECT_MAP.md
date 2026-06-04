@@ -1,5 +1,5 @@
 # QRMA Dashboard — Project Master Map
-**Last updated:** 2026-06-04 — B3 Phase 1 (label translation), zone engine fix (computeAllZones), Bio Age live-zone fix, dg-redflag removal  
+**Last updated:** 2026-06-04 — CR scale corrections (cr-ch/vf/lv/k/mg), CR breakdown cards, CR strain formula display  
 **Compiled from:** CLAUDE.md, CHANGELOG.md, audit_v5.md, v5_orientation.md, hrv-flask-session-handover.md, hrv_logic_layer_handover.md, hrv-integration-next-ai-handover.md, current_run.yaml  
 **Purpose:** Single file an AI session or developer reads first. Replaces need to reconcile 5+ context docs.
 
@@ -25,10 +25,10 @@
 
 ```
 Date:          2026-06-04
-Active build:  v6.1 — Zone engine fix + B3 Phase 1 label translation
-Active HTML:   qrma-dashboard-v6.html  (2,892 lines)
-Last QA:       Automated self-check — all passes (zone fix, bio age fix, B3 Phase 1)
-Last hotfix:   computeAllZones() + liveZone() — all modules now read live DOM values
+Active build:  v6.2 — CR scale corrections + CR breakdown cards + CR strain formula display
+Active HTML:   qrma-dashboard-v6.html  (2,945 lines)
+Last QA:       Automated self-check — all passes (CR field scale fixes, zone verification)
+Last hotfix:   cr-ch/cr-vf/cr-lv/cr-k/cr-mg scale corrections; renderCrBreakdown(); crBk formula
 Next build:    Build 3 cont — B3 Phase 2 (bmr() span labels), B3 Phase 3 (mappings.json en_display/id_display)
 ```
 
@@ -50,6 +50,9 @@ Next build:    Build 3 cont — B3 Phase 2 (bmr() span labels), B3 Phase 3 (mapp
 | 2026-06-04 | Bio Age zone fix | Complete ✓ | `cBioAge()` self-computes zones for all 18 Bio Age fields from raw DOM values; writes back to window.zoneData |
 | 2026-06-04 | dg-redflag removal | Complete ✓ | Alarm-symptoms checkbox removed by design decision; cDg() and buildAction() cleaned of all redFlag references |
 | 2026-06-04 | Digestive strip i18n | Complete ✓ | "Digestive Pattern Flagged" / "Pola Pencernaan Terdeteksi" bilingual; `renderHrvStrip_Digestive()` re-renders on language toggle |
+| 2026-06-04 | CR scale corrections | Complete ✓ | cr-ch/cr-vf/cr-lv/cr-k/cr-mg input hints, defaults, step sizes, and computeAllZones() thresholds corrected to match mappings.json raw QRMA scale; TODO flags added for cr-ua/cr-pt |
+| 2026-06-04 | CR breakdown cards | Complete ✓ | `renderCrBreakdown()` — per-parameter zone chips on Cardiac Index and Renal Index cards; bilingual; re-renders on language toggle |
+| 2026-06-04 | CR strain formula | Complete ✓ | `id="r-crbk"` inside CR Strain card — shows weighted formula: Cardiac×0.55 + Renal×0.45 = Total, colour-coded by score band; bilingual labels |
 
 ---
 
@@ -203,6 +206,8 @@ Reversing this order causes `NameError`. This is a known bug pattern.
 | **Bio Age pillar bars stuck on import-era zones** | **Fixed v6.1** | `cBioAge()` self-computes zones for all 18 Bio Age fields via inline `BIO_THR` table + `rawToZone()`, writes back to `window.zoneData`. No longer reads stale CSV-import zones. |
 | **`cMt()` bmiP/wcP ignored zones** | **Fixed v6.1** | `bmiP`/`wcP` now use `bd('mt-bmi')` and `bd('mt-wc')` zone burden; female waist threshold (hi=80 cm) applied via `liveZone()` override before scoring. |
 | **"Digestive Pattern Flagged" hardcoded in English** | **Fixed v6.1** | Both `calcAll()` render and new `renderHrvStrip_Digestive()` function use `currentLang` to select EN/ID strings. Language toggle calls `renderHrvStrip_Digestive()` to refresh live. |
+| **cr-k/cr-mg input scale mismatch** | **Fixed v6.2** | cr-k was using 4.5–7.0 threshold on 0-10 input; cr-mg was 5.0–7.5. Both corrected to match mappings.json raw QRMA scale (cr-k: 0.689–0.987 `bi`; cr-mg: 0.568–0.992 `bi`). step corrected to 0.001. Default values corrected. |
+| **cr-ch/cr-vf/cr-lv input scale mismatch** | **Fixed v6.2** | cr-ch was `hi`/50 (wrong); cr-vf was `lo`/6.0 on 0–10 (wrong); cr-lv was `hi`/5.0 on 0–10 (wrong). All corrected to `bi` with mappings.json ranges (cr-ch: 56.749–67.522; cr-vf: 1.672–1.978; cr-lv: 1.554–1.988). step corrected to 0.001 for vf/lv. TODO flags added for cr-ua/cr-pt (no mappings.json ref). |
 
 ---
 
@@ -244,6 +249,12 @@ cTx()       // hm (heavy metals) + lb (lifestyle burden)
 cMt()       // gc (glycemic) + lp (lipid) — QRMA signals only (bc-* now in separate cBc())
             //   UPDATED (v6.1): bmiP/wcP use zone-based bd(); female waist override via liveZone()
 cCr()       // cai (cardiac) + ri (renal)
+            //   UPDATED (v6.2): all 5 cr-* field thresholds corrected to raw QRMA scale;
+            //   cr-ch bi(56.749,67.522), cr-vf bi(1.672,1.978), cr-lv bi(1.554,1.988),
+            //   cr-k bi(0.689,0.987), cr-mg bi(0.568,0.992)
+renderCrBreakdown()  // NEW (v6.2) — writes per-parameter zone chips to r-cai-desc / r-ri-desc;
+            //   bilingual (Cardiac/Kardiak, Renal/Renal); called in calcAll() + language toggle
+            //   r-crbk: weighted formula display (Cardiac×0.55 + Renal×0.45 = Total) in CR Strain card
 cNt()       // resilience — avg zone score × 10 nutrients
 cSk()       // resilience — cl (collagen) + bf (barrier) + sn
 cDg()       // mt (motility 40%) + ab (absorption 35%) + pi (pressure 25%) — see §5.8
@@ -793,6 +804,8 @@ LANGUAGE (B3 Phase 1)   applyLabels(lang)             — applies QRMA_LABELS tr
 SCORE ENGINE            cBioAge (+ BIO_THR table, rawToZone — live zone self-computation)
                         cOx, cTx, cMt (zone-based bmiP/wcP + female override), cCr, cNt, cSk,
                         cDg (redFlag path removed), cBc, calcAll (computeAllZones first)
+CR HELPERS (v6.2)       renderCrBreakdown() — per-parameter zone chips for Cardiac/Renal index cards;
+                        crBk formula display (r-crbk) inside CR Strain .sc card
 BC HELPERS              getBcLabel, bcZoneLabel, bcRefreshLabels
 BC INPUT PANEL          bcSetMode, bcAutoCalc, bcMarkManual, bcResetAuto,
                         bcParseCsv, bcConfirmCsv, bcDownloadTemplate, _initBcCsvInput

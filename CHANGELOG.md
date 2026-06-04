@@ -2,6 +2,114 @@
 
 ---
 
+## 2026-06-04 — v6.2: CR Scale Corrections + CR Breakdown Cards + CR Strain Formula
+
+### Status: SHIPPED ✓
+
+### Summary
+Four independent surgical changes applied to `qrma-dashboard-v6.html` in the same session.
+HTML grew from 2,892 → 2,945 lines (+53). No other files modified.
+
+---
+
+### FIX 1 — cr-k and cr-mg input scale mismatch
+
+**Root cause:** `cr-k` and `cr-mg` were set up on a 0–10 abstract scale (hints 4.5–7.0 and 5.0–7.5,
+step 0.1, thresholds `bi(4.5,7.0)` / `bi(5.0,7.5)`) instead of the raw QRMA bioresonance scale.
+`mappings.json` confirms both fields share the same source value as `nt-k`/`nt-mg`, which were
+already correctly configured on the raw scale.
+
+**Fix — three touch-points per field:**
+
+| Field | Old hint | New hint | Old default | New default | Old threshold | New threshold |
+|---|---|---|---|---|---|---|
+| `cr-k` | `4.5–7.0` | `0.689–0.987` | 5.2 / step 0.1 | 0.838 / step 0.001 | `bi(4.5, 7.0)` | `bi(0.689, 0.987)` |
+| `cr-mg` | `5.0–7.5` | `0.568–0.992` | 4.8 / step 0.1 | 0.780 / step 0.001 | `bi(5.0, 7.5)` | `bi(0.568, 0.992)` |
+
+**Zone verification for Ridwan:**
+- `cr-k = 0.637` → below lo (0.689) → **ringan** ✓
+- `cr-mg = 0.932` → within (0.568–0.992) → **normal** ✓
+
+---
+
+### FIX 2 — cr-ch, cr-vf, cr-lv input scale mismatch
+
+**Root cause:** Same class of error as FIX 1. All three fields were configured on an abstract 0–10
+scale with thresholds that don't match the raw QRMA PDF values in `mappings.json`.
+
+| Field | Old type | Old threshold | New type | New threshold | Source (mappings.json) |
+|---|---|---|---|---|---|
+| `cr-ch` | `hi` | 50 | `bi` | 56.749 – 67.522 | Kristal Atau Plak Kolesterol |
+| `cr-vf` | `lo` | 6.0 | `bi` | 1.672 – 1.978 | Kelenturan Pembuluh Darah |
+| `cr-lv` | `hi` | 5.0 | `bi` | 1.554 – 1.988 | Kekuatan Efective Bilik Kiri Jantung |
+
+Additional changes per field:
+- `cr-ch`: hint `<50` → `56.749–67.522`; default `71.73` → `62.14` (midpoint); step kept `0.01`
+- `cr-vf`: hint `>6.0` → `1.672–1.978`; default `4.5` → `1.825`; step `0.1` → `0.001`; `(0-10)` label removed
+- `cr-lv`: hint `<5.0` → `1.554–1.988`; default `5.2` → `1.771`; step `0.1` → `0.001`; `(0-10)` label removed
+
+**TODO flags added** above `cr-ua` and `cr-pt` in `computeAllZones()` — no `normal_range` in mappings.json,
+so their existing thresholds are retained but marked for QRMA PDF verification.
+
+**Zone verification for Ridwan:**
+- `cr-ch = 67.24` → within `bi(56.749, 67.522)` → **normal** ✓
+- `cr-vf = 1.966` → within `bi(1.672, 1.978)` → **normal** ✓
+- `cr-lv = 1.702` → within `bi(1.554, 1.988)` → **normal** ✓
+
+---
+
+### FEATURE — renderCrBreakdown(): per-parameter zone chips on index cards
+
+**What was built:** New `renderCrBreakdown()` function at module scope (before `calcAll()`).
+Writes coloured per-parameter zone labels into the two sub-index `.scdesc` elements inside the
+Cardio-Renal module result panel.
+
+- **Cardiac Index card** (`id="r-cai-desc"`) — 3 params: Vascular · LV Resistance · Cholesterol
+- **Renal Index card** (`id="r-ri-desc"`) — 4 params: Uric Acid · Proteinuria · Potassium · Magnesium
+- Zone colours: `normal=#437a22`, `ringan=#6b7c3e`, `sedang=#d19900`, `berat=#a13544`
+- Bilingual: uses `currentLang` for all param labels
+- Called in `calcAll()` after `se('r-cai')` / `se('r-ri')` writes
+- Called in language toggle handler: only re-renders if breakdown already populated
+  (`innerHTML.includes('<strong>')` guard)
+
+---
+
+### FEATURE — CR Strain formula display (r-crbk)
+
+**What was built:** `id="r-crbk"` div added as last child of the CR Strain `.sc` card.
+Written by an IIFE in `calcAll()` where `cr` is already in scope.
+
+Formula shown:
+```
+Kardiak: X% × 0.55  +  Renal: Y% × 0.45  =  Z%
+```
+- Each value colour-coded independently: ≤30 green · ≤60 amber · >60 red
+- Bilingual labels: `Cardiac` / `Kardiak`, `Renal` / `Renal`
+- Total rounded via `Math.round(cr.cai × 0.55 + cr.ri × 0.45)`
+- Null-guarded: `if(!crBk) return`
+
+---
+
+### Files Modified
+- `qrma-dashboard-v6.html` — 2,892 → 2,945 lines (+53):
+  - `id="r-cai-desc"` added to Cardiac Index `.scdesc`
+  - `id="r-ri-desc"` added to Renal Index `.scdesc`
+  - `id="r-crbk"` div added inside CR Strain `.sc` card
+  - `renderCrBreakdown()` function added (28 lines)
+  - `calcAll()` CR render block: `se('r-cai')` / `se('r-ri')` split to own lines; `renderCrBreakdown()` call added; crBk IIFE added (15 lines)
+  - `computeAllZones()`: cr-k `bi(4.5,7.0)` → `bi(0.689,0.987)`; cr-mg `bi(5.0,7.5)` → `bi(0.568,0.992)`; cr-ch `hi(null,50)` → `bi(56.749,67.522)`; cr-vf `lo(6.0,null)` → `bi(1.672,1.978)`; cr-lv `hi(null,5.0)` → `bi(1.554,1.988)`; TODO comments on cr-ua, cr-pt
+  - HTML input hints/defaults/steps corrected for all 5 fields; `(0-10)` span removed from cr-vf/cr-lv labels
+  - Language toggle handler: `renderCrBreakdown()` call added after `bcRefreshLabels()`
+
+### Files Unchanged
+- `03_Scripts/zone-scoring.js` — unmodified
+- `03_Scripts/hrv-engine.js` — unmodified
+- `03_Scripts/importer.js` — unmodified
+- `03_Scripts/mappings.json` — unmodified
+- All Python scripts — unmodified
+
+---
+
 ## 2026-06-04 — v6.1: Zone Engine Fix + B3 Phase 1 Label Translation
 
 ### Status: SHIPPED ✓
