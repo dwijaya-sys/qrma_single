@@ -902,7 +902,7 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
 </div>
 <script>
 (function(){const t=document.querySelector('[data-tt]'),r=document.documentElement;let d=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';r.setAttribute('data-theme',d);t&&t.addEventListener('click',()=>{d=d==='dark'?'light':'dark';r.setAttribute('data-theme',d);t.innerHTML=d==='dark'?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>':'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';});})();
-function nav(id){document.querySelectorAll('.pg').forEach(s=>s.classList.remove('active'));document.querySelectorAll('[data-nav],[data-mn]').forEach(s=>s.classList.remove('active'));document.getElementById('pg-'+id).classList.add('active');document.querySelectorAll('[data-nav="'+id+'"],[data-mn="'+id+'"]').forEach(e=>e.classList.add('active'));window.scrollTo({top:0,behavior:'smooth'});}
+function nav(id){document.querySelectorAll('.pg').forEach(s=>s.classList.remove('active'));document.querySelectorAll('[data-nav],[data-mn]').forEach(s=>s.classList.remove('active'));document.getElementById('pg-'+id).classList.add('active');document.querySelectorAll('[data-nav="'+id+'"],[data-mn="'+id+'"]').forEach(e=>e.classList.add('active'));if(id==='bodycomp'&&typeof bcAutoCalc==='function')bcAutoCalc();window.scrollTo({top:0,behavior:'smooth'});}
 const g=id=>parseFloat(document.getElementById(id)?.value)||0;
 function se(id,val,cls){const e=document.getElementById(id);if(!e)return;e.textContent=val;if(cls){e.className=e.className.replace(/\bc(ok|warn|bad|info)\b/g,'').trim()+' '+cls;}}
 function clrc(v,lo,hi){return v<=lo?'cok':v<=hi?'cwarn':'cbad';}
@@ -933,6 +933,30 @@ function bcZoneLabel(zone){
              id: {normal:'Normal',ringan:'Ringan',sedang:'Sedang', berat:'Berat'}};
   const label=((map[lang]||map.id)[zone])||zone;
   return label.charAt(0).toUpperCase()+label.slice(1);
+}
+function bcRefreshLabels(){
+  const bc=window.bcResult;
+  if(!bc||!bc.s)return;
+  const alerts=[];
+  if(bc.bmi?.zone&&bc.bmi.zone!=='normal')
+    alerts.push(aal('warn','BMI — '+bcZoneLabel(bc.bmi.zone),'BMI '+(bc.bmi.raw?.toFixed(1)??'—')+' kg/m²',true));
+  if(bc.wc?.zone&&bc.wc.zone!=='normal')
+    alerts.push(aal('warn','Waist — '+bcZoneLabel(bc.wc.zone),bc.wc.raw+' cm',true));
+  if(bc.bf?.zone&&bc.bf.zone!=='normal')
+    alerts.push(aal('warn','Body fat — '+bcZoneLabel(bc.bf.zone),bc.bf.raw+'%',true));
+  if(bc.vf?.zone&&bc.vf.zone!=='normal')
+    alerts.push(aal('warn','Visceral fat — '+bcZoneLabel(bc.vf.zone),'Index '+bc.vf.raw,true));
+  if(bc.whr?.zone&&bc.whr.zone!=='normal')
+    alerts.push(aal('warn','Waist-height ratio — '+bcZoneLabel(bc.whr.zone),bc.whr.raw?.toFixed(2)??'—',true));
+  if(bc.bmr?.raw){
+    const bmrTitle=(currentLang==='en')?'Estimated BMR':'Estimasi BMR';
+    const bmrDesc=(currentLang==='en')
+      ?bc.bmr.raw.toFixed(0)+' kcal/day — Basal Metabolic Rate: the minimum energy your body needs at rest to maintain basic functions (breathing, circulation, cell repair).'
+      :bc.bmr.raw.toFixed(0)+' kkal/hari — Basal Metabolic Rate: jumlah energi minimum yang dibutuhkan tubuh saat istirahat untuk mempertahankan fungsi dasar (pernapasan, sirkulasi, perbaikan sel).';
+    alerts.push(aal('info',bmrTitle,bmrDesc));
+  }
+  const el=document.getElementById('r-bcal');
+  if(el)el.innerHTML=alerts.join('');
 }
 function bar(label,val,max,ccls){const pct=Math.min(100,(val/max)*100);const fc=ccls.replace('c','f');return '<div class="sbw"><div class="sbh"><span class="sbhl">'+label+'</span><span class="'+ccls+'" style="font-weight:700">'+val.toFixed(1)+'</span></div><div class="sbt"><div class="sbf '+fc+'" style="width:'+pct+'%"></div></div><div class="sbl"><span>0</span><span>'+max+'</span></div></div>';}
 function bmr(name,val,st,zone){const m={normal:'cok2',borderline:'cbl',deficient:'cdef',abnormal:'cab'};const zA=zone?' data-zone="'+zone+'"':'';const label=zone&&typeof getBadge==='function'?getBadge(zone):{normal:'Normal',borderline:'Borderline',deficient:'Deficient',abnormal:'Abnormal'}[st]||st;return '<div class="bmr"><span class="bmn">'+name+'</span><span class="bmv">'+(typeof val==='number'?val.toFixed(3):val)+'</span><span class="chip '+(m[st]||'cbl')+'"'+zA+'>'+label+'</span></div>';}
@@ -2109,10 +2133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
       if (typeof renderHrvPanel === 'function') renderHrvPanel();
-      if (typeof calcAll === 'function' &&
-          document.getElementById('r-bcs')?.textContent !== '—') {
-        calcAll();
-      }
+      if (typeof bcRefreshLabels === 'function') bcRefreshLabels();
       document.querySelectorAll('[data-gauge-label]').forEach(el => {
         const key = el.dataset.gaugeKey;
         if (key && typeof HRV_BAND_LABELS !== 'undefined') {

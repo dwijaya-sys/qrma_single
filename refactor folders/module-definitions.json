@@ -314,6 +314,171 @@
         "Store alerts as moduleId, paramId, alertType, evidenceLevel, labTestIds, foodActionIds.",
         "The disclaimer cannot be hidden or dismissed."
       ]
+    },
+    {
+      "id": "M9",
+      "slug": "gut-digestive-function",
+      "name": "Gut / Digestive Function",
+      "uiLabel": "Digestive Pattern Assessment",
+      "category": "digestive",
+      "evidenceStrength": "exploratory",
+      "implementedIn": "qrma-dashboard-v5.html",
+      "scoringFunction": "cDg()",
+      "goal": "Assess functional digestive patterns across motility, absorption, microbiome balance, and intraluminal pressure. Flag patterns warranting dietary review or clinical investigation.",
+      "inputMode": "qrma_pdf",
+      "inputs": [
+        { "paramId": "M9.1", "key": "gastricPeristalsis",          "domId": "dg-lp", "source": "qrma_pdf", "type": "number", "unit": "coefficient", "normal_range": "58.4–61.2" },
+        { "paramId": "M9.2", "key": "gastricAbsorption",           "domId": "dg-la", "source": "qrma_pdf", "type": "number", "unit": "coefficient", "normal_range": "34.4–35.6" },
+        { "paramId": "M9.3", "key": "smallIntestinePeristalsis",   "domId": "dg-sp", "source": "qrma_pdf", "type": "number", "unit": "coefficient", "normal_range": "133.4–140.5" },
+        { "paramId": "M9.4", "key": "smallIntestineAbsorption",    "domId": "dg-sa", "source": "qrma_pdf", "type": "number", "unit": "coefficient", "normal_range": "3.6–6.5" },
+        { "paramId": "M9.5", "key": "largeIntestineMotility",      "domId": "dg-lc", "source": "qrma_pdf", "type": "number", "unit": "coefficient", "normal_range": "4.6–6.5" },
+        { "paramId": "M9.6", "key": "colonicAbsorption",           "domId": "dg-ca", "source": "qrma_pdf", "type": "number", "unit": "coefficient", "normal_range": "2.9–3.8" },
+        { "paramId": "M9.7", "key": "intestinalBacteriaBalance",   "domId": "dg-bi", "source": "qrma_pdf", "type": "number", "unit": "coefficient", "normal_range": "1.7–2.6" },
+        { "paramId": "M9.8", "key": "intraluminalPressure",        "domId": "dg-ip", "source": "qrma_pdf", "type": "number", "unit": "coefficient", "normal_range": "1.2–2.3", "direction": "higher-worse", "note": "Zone inverted in parser_v3.py" },
+        { "paramId": "M9.9", "key": "digestiveSystemOverall",      "domId": "dg-ds", "source": "qrma_pdf", "type": "number", "unit": "index",       "normal_range": "3.5–4.7" }
+      ],
+      "derivedOutputs": [
+        { "paramId": "M9.10", "key": "motilityTransit",     "type": "number", "unit": "0-100", "note": "avg burden(dg-lp, dg-sp, dg-lc) × (100/9), weight 40%" },
+        { "paramId": "M9.11", "key": "absorptionEnv",       "type": "number", "unit": "0-100", "note": "avg burden(dg-la, dg-sa, dg-ca, dg-bi) × (100/9), weight 35%" },
+        { "paramId": "M9.12", "key": "pressureIntegrity",   "type": "number", "unit": "0-100", "note": "(burden(dg-ip)×1.5 + burden(dg-ds)×0.5)/2 × (100/9), weight 25%" },
+        { "paramId": "M9.13", "key": "overallGutScore",     "type": "number", "unit": "0-100", "note": "mt×0.40 + ab×0.35 + pi×0.25" }
+      ],
+      "patternFlags": {
+        "bloatingConstipation": "dg-ip ≥ sedang AND dg-lc ≥ sedang",
+        "upperGiStrain":        "dg-lp ≥ sedang AND dg-sa ≥ sedang",
+        "absorptionDeficit":    "dg-sa = berat OR dg-ca = berat"
+      },
+      "alertLogic": {
+        "primary": [
+          "overallGutScore > 30",
+          "any pattern flag active"
+        ],
+        "redFlag": {
+          "trigger": "dg-redflag checkbox checked",
+          "action": "Show clinical review required alert; suppress all pattern scoring"
+        },
+        "forbidden": [
+          "You have IBS → use 'Pattern suggests functional gut sensitivity'",
+          "Leaky gut → use 'Intestinal barrier pattern'",
+          "Dysbiosis confirmed → use 'Intestinal bacteria balance pattern'",
+          "Candida overgrowth → do not mention",
+          "Detox your gut → use 'Support digestive function through...'",
+          "You are constipated → use 'Reduced transit pattern'"
+        ]
+      },
+      "charts": ["sub-score bars", "pattern flag chips"],
+      "developerNotes": [
+        "dg-ip is higher-worse: elevated values = worse zone. Zone derivation inverted in parser_v3.py (ratio-based).",
+        "dg-lc was affected by orphan-name truncation bug fixed in v5.0.",
+        "Alarm symptoms checkbox (dg-redflag) added in v6.0 — was missing in v5.",
+        "Full spec: MODULE_9_DIGESTIVE_SPEC.md"
+      ]
+    },
+    {
+      "id": "M10",
+      "slug": "body-composition",
+      "name": "Body Composition",
+      "uiLabel": "Body Composition Risk",
+      "category": "anthropometric",
+      "evidenceStrength": "needs_lab_confirmation",
+      "implementedIn": "qrma-dashboard-v6.html",
+      "scoringFunction": "cBc()",
+      "goal": "Assess central adiposity and body composition risk using anthropometric measurements and prompt confirmatory clinical measurement (DEXA, bioimpedance, or clinical tape).",
+      "inputMode": "manual_only",
+      "inputs": [
+        { "paramId": "M10.1",  "key": "gender",           "domId": "bc-gender", "source": "manual",      "type": "string",  "unit": "male|female",  "note": "Fallback to top-level gender select" },
+        { "paramId": "M10.2",  "key": "age",              "domId": "bc-age",    "source": "manual",      "type": "number",  "unit": "years",        "note": "Fallback to top-level age input" },
+        { "paramId": "M10.3",  "key": "height",           "domId": "bc-height", "source": "manual",      "type": "number",  "unit": "cm" },
+        { "paramId": "M10.4",  "key": "weight",           "domId": "bc-weight", "source": "manual",      "type": "number",  "unit": "kg" },
+        { "paramId": "M10.5",  "key": "bmi",              "domId": "bc-bmi",    "source": "auto_or_manual", "type": "number", "unit": "kg/m²",    "note": "Auto-calc from height+weight; manual override via data-manual attr" },
+        { "paramId": "M10.6",  "key": "waistCircumference","domId": "bc-wc",    "source": "manual",      "type": "number",  "unit": "cm" },
+        { "paramId": "M10.7",  "key": "bodyFatPct",       "domId": "bc-bf",     "source": "manual",      "type": "number",  "unit": "%" },
+        { "paramId": "M10.8",  "key": "visceralFatIndex", "domId": "bc-vf",     "source": "manual",      "type": "number",  "unit": "1-59 Tanita scale" },
+        { "paramId": "M10.9",  "key": "whr",              "domId": "bc-whr",    "source": "auto_or_manual", "type": "number", "unit": "ratio",    "note": "Auto-calc from bc-wc/bc-height; manual override via data-manual attr" }
+      ],
+      "derivedOutputs": [
+        { "paramId": "M10.10", "key": "centralAdiposity",    "type": "number", "unit": "0-100", "note": "cai = avg burden(wc, whr) × (100/9)" },
+        { "paramId": "M10.11", "key": "bodyCompositionIndex","type": "number", "unit": "0-100", "note": "bci = (burden(bf)×0.6 + burden(vf)×0.4) × (100/9)" },
+        { "paramId": "M10.12", "key": "structuralIndex",     "type": "number", "unit": "0-100", "note": "sti = burden(bmi) × (100/9)" },
+        { "paramId": "M10.13", "key": "overallRiskScore",    "type": "number", "unit": "0-100", "note": "cai×0.40 + bci×0.35 + sti×0.25; partial scoring when fields absent" },
+        { "paramId": "M10.14", "key": "bmrKcal",             "type": "number", "unit": "kcal/day", "note": "Mifflin-St Jeor; informational only — no zone classification" }
+      ],
+      "zoneThresholds": {
+        "bmi": {
+          "source": "Standard WHO (bidirectional)",
+          "berat_low":   "< 16.0",
+          "sedang_low":  "16.0–16.9",
+          "ringan_low":  "17.0–18.4",
+          "normal":      "18.5–24.9",
+          "ringan_high": "25.0–27.4",
+          "sedang_high": "27.5–29.9",
+          "berat_high":  "≥ 30.0"
+        },
+        "waistCircumference": {
+          "source": "IDF South/Southeast Asian",
+          "male":   { "normal": "< 90", "ringan": "90–94", "sedang": "95–99", "berat": "≥ 100" },
+          "female": { "normal": "< 80", "ringan": "80–84", "sedang": "85–89", "berat": "≥ 90"  }
+        },
+        "bodyFatPct": {
+          "source": "ACSM by sex and age bracket",
+          "male_under40":   { "normal": "< 20", "ringan": "20–24", "sedang": "25–29", "berat": "≥ 30" },
+          "male_40to59":    { "normal": "< 22", "ringan": "22–26", "sedang": "27–31", "berat": "≥ 32" },
+          "male_60plus":    { "normal": "< 24", "ringan": "24–28", "sedang": "29–33", "berat": "≥ 34" },
+          "female_under40": { "normal": "< 28", "ringan": "28–32", "sedang": "33–37", "berat": "≥ 38" },
+          "female_40to59":  { "normal": "< 30", "ringan": "30–34", "sedang": "35–39", "berat": "≥ 40" },
+          "female_60plus":  { "normal": "< 32", "ringan": "32–36", "sedang": "37–41", "berat": "≥ 42" }
+        },
+        "visceralFatIndex": {
+          "source": "Tanita 1–59 scale",
+          "normal": "1–9", "ringan": "10–14", "sedang": "15–19", "berat": "≥ 20"
+        },
+        "whr": {
+          "source": "Universal cutoffs",
+          "normal": "< 0.50", "ringan": "0.50–0.549", "sedang": "0.55–0.599", "berat": "≥ 0.60"
+        }
+      },
+      "alertLogic": {
+        "primary": [
+          "bmi.zone !== normal",
+          "wc.zone !== normal",
+          "bf.zone !== normal",
+          "vf.zone !== normal",
+          "whr.zone !== normal"
+        ],
+        "highPriority": [
+          "overallRiskScore >= 60"
+        ],
+        "confirmatoryTests": {
+          "bmi_non_normal": "DEXA Scan or BIA — body fat % and lean mass distribution",
+          "vf_non_normal":  "Abdominal ultrasound or CT — visceral adipose tissue volume",
+          "whr_non_normal": "Metabolic panel + fasting insulin — cardiometabolic risk from central adiposity"
+        }
+      },
+      "csvImport": {
+        "template": "body_comp_template.csv",
+        "templateFunction": "bcDownloadTemplate()",
+        "parseFunction":    "bcParseCsv(text)",
+        "confirmFunction":  "bcConfirmCsv()",
+        "columns": ["gender","age","height_cm","weight_kg","bmi","waist_cm","body_fat_pct","visceral_fat_index","whr"]
+      },
+      "languageSupport": {
+        "zoneBadges": "bcZoneLabel(zone) — bilingual EN/ID via bcRefreshLabels()",
+        "bmrDisplay": "bmrTitle + bmrDesc bilingual in calcAll() render block",
+        "updateTrigger": "bcRefreshLabels() called on language toggle (not calcAll())"
+      },
+      "charts": ["8-domain radar (higher=better inverted)", "8-domain horizontal bar"],
+      "exportSection": "Section 9 in MD/TXT report; body_composition block in JSON Data Summary",
+      "developerNotes": [
+        "bc-* fields are never populated from the QRMA PDF pipeline — manual entry only.",
+        "QRMA import modal denominator is 73 (bc-* excluded from count via bc- prefix filter).",
+        "window.bcResult is set in calcAll() alongside bc zone data in window.zoneData.",
+        "bcRefreshLabels() re-renders #r-bcal from cached window.bcResult on language toggle.",
+        "Bilingual zone chips use bcZoneLabel(); EN maps berat to 'High Risk' not 'Berat'.",
+        "aal() has optional 4th param forceTitleBlack=true for bc alert titles (black text on orange bg).",
+        "nav() calls bcAutoCalc() on bodycomp page load to refresh derived fields.",
+        "renderHrvStrip_BodyComp() is inline in the HTML — hrv-engine.js was not modified.",
+        "HRV context sentence for body_comp not yet in hrv-engine.js getModuleContextSentence() — deferred B15."
+      ]
     }
   ]
 }

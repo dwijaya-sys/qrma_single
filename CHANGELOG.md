@@ -2,6 +2,88 @@
 
 ---
 
+## 2026-06-04 — v6.0: Body Composition Module (Module 10)
+
+### Status: SHIPPED ✓
+
+### What Was Built
+`qrma-dashboard-v6.html` — 2,638 lines. Adds Module 10 (Body Composition), wires it into
+all existing systems (export, charts, action plan, HRV strips), and applies all fixes
+identified in `audit_v5.md`.
+
+### Module 10 — Body Composition (`cBc()`)
+
+**Scoring engine** — zone-based, standalone (not part of `cMt()`):
+- Sub-scores: Central Adiposity Index (`cai`: wc + whr, 40%), Body Composition Index
+  (`bci`: bf + vf, 35%), Structural Index (`sti`: bmi, 25%)
+- Partial scoring: denominator adjusts for absent fields — no penalty for missing data
+- Auto-calc: BMI from height+weight; WHR from wc/height; manual override via
+  `data-manual` attribute + "↺ recalculate" reset link
+- BMR: Mifflin-St Jeor formula, informational only, bilingual display
+
+**Zone thresholds (cBc() — standard WHO/ACSM/IDF/Tanita 1-59):**
+- BMI: bidirectional (underweight ↔ overweight), both mapped to burden
+- Waist: IDF South/Southeast Asian cutoffs (M ≥90, F ≥80 for ringan threshold)
+- Body fat: ACSM by sex + age bracket (<40 / 40-59 / ≥60)
+- Visceral fat: Tanita 1–59 scale (normal 1–9, berat ≥20)
+- WHR: universal cutoffs (normal <0.50, berat ≥0.60)
+
+**Input panel — two entry modes (mode toggle):**
+- Manual: 9 input fields (bc-gender, bc-age, bc-height, bc-weight, bc-bmi, bc-wc,
+  bc-bf, bc-vf, bc-whr) with auto-calc, live BMR display, and override tracking
+- CSV import: `bcDownloadTemplate()` generates 9-column template; `bcParseCsv()` +
+  `bcConfirmCsv()` handle the import flow with field-match preview
+
+### System integration
+
+- **Charts**: `drawCharts()` extended to 8 domains — 'Body Comp' label added to lb,
+  rd, bar-data, and bc-color arrays
+- **Export report**: Section 9 added with 5 zone parameters + BMR; `rawScores.bc`,
+  `zones.bc`, `domainNames.bc` wired; `body_composition` block in JSON Data Summary
+  and TXT columnar summary
+- **Action plan**: 3 `buildAction()` test rows (DEXA, ultrasound, metabolic panel),
+  3 conditional food rows, high-priority score-level alert (bc.s ≥ 60)
+- **HRV strip**: `renderHrvStrip_BodyComp()` added inline in v6 HTML;
+  called directly from `calcAll()` — hrv-engine.js unmodified
+- **Language toggle**: `bcRefreshLabels()` replaces `calcAll()` in toggle handler —
+  re-renders only `#r-bcal` using cached `window.bcResult`; bilingual zone labels
+  via `bcZoneLabel()`, bilingual BMR title + description
+- **Navigation**: `nav()` calls `bcAutoCalc()` on bodycomp page load
+
+### Bug fixes from audit_v5.md
+
+| Fix | Detail |
+|---|---|
+| CSS `--card`, `--rad` undefined in HRV balance card | Replaced with `--surf2`, `--rlg` |
+| `.abox aerr` undefined class on Gut redflag panel | Corrected to `.aal aerr` with proper structure |
+| `dg-redflag` checkbox missing | Added to Gut input panel; `cDg()` red-flag gate now functional |
+| `dg-*` fields missing from `_ALL_FIELDS` | All 9 digestive fields added |
+| Lucide CDN unpinned `@latest` | Pinned to `@0.344.0` |
+| Recursive `renderHrvPanel` wrapper | Removed; `renderHrvStrip_BodyComp()` called directly |
+| Debug `console.log` in `confirmImport()` | Removed (2 lines) |
+| bc-* fields inflating QRMA import modal count | `_showImportModal` filters `bc-` prefix; denominator now 73 |
+| `buildAction()` 4th column text muted grey | Changed to `color:#000000` |
+| Gut sidebar icon mismatch | Changed from `activity` to `utensils` |
+
+### Files Created
+- `qrma-dashboard-v6.html` (2,638 lines)
+- `audit_v5.md` (structured code audit of v5 — 10 sections)
+
+### Files Modified
+- `PROJECT_MAP.md` — updated §2, §3.1, §3.2, §4.1, §4.4, §5.1, §5.2, §5.6, §5.7,
+  §6.4, §6.6, §9, §10.4, §11.3
+- `CHANGELOG.md` — this entry
+- `refactor folders/module-definitions.json` — M10 Body Composition added
+
+### Files Unchanged
+- `qrma-dashboard-v5.html` — preserved exactly (1,960 lines)
+- `03_Scripts/hrv-engine.js` — unmodified (bc strip added inline in v6 HTML)
+- `03_Scripts/zone-scoring.js` — unmodified
+- `03_Scripts/importer.js` — unmodified
+- `03_Scripts/mappings.json` — unmodified (bc-* fields are manual-input-only; no PDF mapping)
+
+---
+
 ## 2026-06-01 — Export Report Feature: MD + TXT Format Toggle
 
 ### Status: SHIPPED
