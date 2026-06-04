@@ -356,7 +356,7 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
   <button class="sni" onclick="nav('nutrient')" data-nav="nutrient"><i data-lucide="leaf" width="16" height="16"></i> Nutrient Sufficiency</button>
   <button class="sni" onclick="nav('skin')" data-nav="skin"><i data-lucide="sparkles" width="16" height="16"></i> Skin &amp; Collagen</button>
   <button class="sni" onclick="nav('bodycomp')" data-nav="bodycomp"><i data-lucide="ruler" width="16" height="16"></i> Body Comp</button>
-  <button class="sni" onclick="nav('digestive')" data-nav="digestive"><i data-lucide="activity" width="16" height="16"></i> Gut / Digestive</button>
+  <button class="sni" onclick="nav('digestive')" data-nav="digestive"><i data-lucide="utensils" width="16" height="16"></i> Gut / Digestive</button>
   <div class="snl" style="margin-top:var(--sp2)">Results</div>
   <button class="sni" onclick="nav('action')" data-nav="action"><i data-lucide="clipboard-list" width="16" height="16"></i> Action Plan</button>
   <div class="snl" style="margin-top:var(--sp2)">Autonomic</div>
@@ -927,9 +927,16 @@ function zbs(fieldId,type){
 }
 function lbl(v,lo,hi){return v<=lo?'Low Concern':v<=hi?'Monitor':'Needs Lab Confirmation';}
 function getBcLabel(s){return s<30?'Low Concern':s<60?'Monitor':'Needs Lab Confirmation';}
+function bcZoneLabel(zone){
+  const lang=(typeof currentLang!=='undefined')?currentLang:'id';
+  const map={en:{normal:'Normal',ringan:'Mild',sedang:'Moderate',berat:'High Risk'},
+             id: {normal:'Normal',ringan:'Ringan',sedang:'Sedang', berat:'Berat'}};
+  const label=((map[lang]||map.id)[zone])||zone;
+  return label.charAt(0).toUpperCase()+label.slice(1);
+}
 function bar(label,val,max,ccls){const pct=Math.min(100,(val/max)*100);const fc=ccls.replace('c','f');return '<div class="sbw"><div class="sbh"><span class="sbhl">'+label+'</span><span class="'+ccls+'" style="font-weight:700">'+val.toFixed(1)+'</span></div><div class="sbt"><div class="sbf '+fc+'" style="width:'+pct+'%"></div></div><div class="sbl"><span>0</span><span>'+max+'</span></div></div>';}
 function bmr(name,val,st,zone){const m={normal:'cok2',borderline:'cbl',deficient:'cdef',abnormal:'cab'};const zA=zone?' data-zone="'+zone+'"':'';const label=zone&&typeof getBadge==='function'?getBadge(zone):{normal:'Normal',borderline:'Borderline',deficient:'Deficient',abnormal:'Abnormal'}[st]||st;return '<div class="bmr"><span class="bmn">'+name+'</span><span class="bmv">'+(typeof val==='number'?val.toFixed(3):val)+'</span><span class="chip '+(m[st]||'cbl')+'"'+zA+'>'+label+'</span></div>';}
-function aal(type,title,desc){const m={err:'aerr',warn:'awarn',info:'ainfo',ok:'aok'};const ic={err:'alert-circle',warn:'alert-triangle',info:'info',ok:'check-circle'};return '<div class="aal '+(m[type])+'"><i data-lucide="'+ic[type]+'" width="16" height="16" class="aalic"></i><div class="aalb"><div class="aalt">'+title+'</div><div class="aald">'+desc+'</div></div></div>';}
+function aal(type,title,desc,forceTitleBlack=false){const m={err:'aerr',warn:'awarn',info:'ainfo',ok:'aok'};const ic={err:'alert-circle',warn:'alert-triangle',info:'info',ok:'check-circle'};const ts=forceTitleBlack?' style="color:#000000"':'';return '<div class="aal '+(m[type])+'"><i data-lucide="'+ic[type]+'" width="16" height="16" class="aalic"></i><div class="aalb"><div class="aalt"'+ts+'>'+title+'</div><div class="aald">'+desc+'</div></div></div>';}
 function ftrow(label,foods){return '<div style="margin-bottom:var(--sp3)"><div style="font-size:var(--text-sm);font-weight:600;margin-bottom:var(--sp2)">'+label+'</div><div class="ftags">'+foods.map(f=>'<span class="ftag">&#127807; '+f+'</span>').join('')+'</div></div>';}
 function getPillarLabel(burden){
   const labels={
@@ -1439,7 +1446,7 @@ function buildAction(d){const rows=[];if(d.ba.ba>d.ba.age+5)rows.push({p:'High',
     if(bcR.whr?.zone&&bcR.whr.zone!=='normal')
       rows.push({p:_bcp(bcR.whr.zone),dom:'Body Composition: Waist-Height Ratio',f:'WHR '+bcR.whr.raw.toFixed(2)+' — zone: '+bcR.whr.zone,t:'Metabolic panel + fasting insulin — cardiometabolic risk from central adiposity'});
   }
-rows.sort((a,b)=>({High:0,Medium:1,Low:2}[a.p]-{High:0,Medium:1,Low:2}[b.p]));if(!rows.length){document.getElementById('r-acttbl').innerHTML=aal('ok','No Critical Flags','All screening signals within normal reference ranges. Routine monitoring recommended.');}else{let h='<table class="atbl"><thead><tr><th>Priority</th><th>Domain</th><th>Screening Finding</th><th>Suggested Confirmatory Tests</th></tr></thead><tbody>';rows.forEach(r=>{const pc=r.p==='High'?'phi':r.p==='Medium'?'pmd':'plo';h+='<tr><td class="'+pc+'">'+r.p+'</td><td>'+r.dom+'</td><td>'+r.f+'</td><td style="font-size:var(--text-sm);color:var(--txtM)">'+r.t+'</td></tr>';});h+='</tbody></table>';document.getElementById('r-acttbl').innerHTML=h;}const fp=[];if(d.ox.s>40)fp.push(ftrow('Antioxidant Priority',['Berries','Spinach','Green Tea','Brazil Nuts (Se)','Citrus (Vit C)','Sunflower Seeds (Vit E)','Dark Chocolate']));if(d.mt.s>30)fp.push(ftrow('Metabolic Support',['Oats + Legumes (Fiber)','Fatty Fish (Omega-3)','Bitter Melon','Cinnamon','Reduce Refined Carbs']));if(d.cr.s>30)fp.push(ftrow('Cardio-Renal',['Bananas + Avocado (K)','Pumpkin Seeds (Mg)','Quercetin Foods (Onion)','Reduce Sodium']));if(d.nt.def>3)fp.push(ftrow('Micronutrient Diversity',['Dark Leafy Greens (Mg, Folate)','Pumpkin Seeds (Zinc)','Seaweed (Iodine)','Fatty Fish (D3, B6)','Chickpeas (Folate)']));if(d.sk.s<60)fp.push(ftrow('Skin + Collagen',['Bone Broth','Fish / Chicken Skin','Egg Whites','Vitamin C Cofactors','Garlic (Sulfur)','Berries (Resveratrol)']));if(d.dg && !d.dg.redFlag && d.dg.s>30)fp.push(ftrow('Digestive Support',['Smaller meals + slow eating (20+ min per meal)','Warm ginger or peppermint tea with meals','10–15 min walk after lunch (Small Intestine peak: 1–3 PM)','Gradual fibre increase only — sudden increase worsens bloating','Low-FODMAP trial for bloating-predominant patterns','Reduce carbonated drinks + sugar alcohols','Tempeh, kimchi, kefir in small amounts if tolerated','Leek, oats, banana — prebiotic-rich foods','Avoid eating under stress — rest-and-digest before meals']));
+rows.sort((a,b)=>({High:0,Medium:1,Low:2}[a.p]-{High:0,Medium:1,Low:2}[b.p]));if(!rows.length){document.getElementById('r-acttbl').innerHTML=aal('ok','No Critical Flags','All screening signals within normal reference ranges. Routine monitoring recommended.');}else{let h='<table class="atbl"><thead><tr><th>Priority</th><th>Domain</th><th>Screening Finding</th><th>Suggested Confirmatory Tests</th></tr></thead><tbody>';rows.forEach(r=>{const pc=r.p==='High'?'phi':r.p==='Medium'?'pmd':'plo';h+='<tr><td class="'+pc+'">'+r.p+'</td><td>'+r.dom+'</td><td>'+r.f+'</td><td style="font-size:var(--text-sm);color:#000000">'+r.t+'</td></tr>';});h+='</tbody></table>';document.getElementById('r-acttbl').innerHTML=h;}const fp=[];if(d.ox.s>40)fp.push(ftrow('Antioxidant Priority',['Berries','Spinach','Green Tea','Brazil Nuts (Se)','Citrus (Vit C)','Sunflower Seeds (Vit E)','Dark Chocolate']));if(d.mt.s>30)fp.push(ftrow('Metabolic Support',['Oats + Legumes (Fiber)','Fatty Fish (Omega-3)','Bitter Melon','Cinnamon','Reduce Refined Carbs']));if(d.cr.s>30)fp.push(ftrow('Cardio-Renal',['Bananas + Avocado (K)','Pumpkin Seeds (Mg)','Quercetin Foods (Onion)','Reduce Sodium']));if(d.nt.def>3)fp.push(ftrow('Micronutrient Diversity',['Dark Leafy Greens (Mg, Folate)','Pumpkin Seeds (Zinc)','Seaweed (Iodine)','Fatty Fish (D3, B6)','Chickpeas (Folate)']));if(d.sk.s<60)fp.push(ftrow('Skin + Collagen',['Bone Broth','Fish / Chicken Skin','Egg Whites','Vitamin C Cofactors','Garlic (Sulfur)','Berries (Resveratrol)']));if(d.dg && !d.dg.redFlag && d.dg.s>30)fp.push(ftrow('Digestive Support',['Smaller meals + slow eating (20+ min per meal)','Warm ginger or peppermint tea with meals','10–15 min walk after lunch (Small Intestine peak: 1–3 PM)','Gradual fibre increase only — sudden increase worsens bloating','Low-FODMAP trial for bloating-predominant patterns','Reduce carbonated drinks + sugar alcohols','Tempeh, kimchi, kefir in small amounts if tolerated','Leek, oats, banana — prebiotic-rich foods','Avoid eating under stress — rest-and-digest before meals']));
 if(bcR&&bcR.s>0)fp.push(ftrow('Anti-inflammatory foods',['Fatty fish','Berries','Leafy greens','Olive oil','Turmeric']));
 if(bcR&&(bcR.wc?.zone!=='normal'||bcR.whr?.zone!=='normal'))fp.push(ftrow('Waist reduction support',['Green tea','Legumes','Resistant starch','Reduce refined carbs']));
 if(bcR&&bcR.bf?.zone&&bcR.bf.zone!=='normal')fp.push(ftrow('Body composition support',['High-protein foods','Cruciferous vegetables','Adequate sleep priority']));
@@ -1507,12 +1514,12 @@ if(bc.s > 0){
   se('r-bcai', bc.cai ? bc.cai.toFixed(0)+'%' : '--');
   se('r-bcbi', bc.bci ? bc.bci.toFixed(0)+'%' : '--');
   const bcAlerts=[];
-  if(bc.bmi?.zone&&bc.bmi.zone!=='normal') bcAlerts.push(aal('warn','BMI — '+bc.bmi.zone,'BMI '+(bc.bmi.raw?.toFixed(1)??'—')+' kg/m²'));
-  if(bc.wc?.zone&&bc.wc.zone!=='normal') bcAlerts.push(aal('warn','Waist circumference — '+bc.wc.zone,bc.wc.raw+' cm'));
-  if(bc.bf?.zone&&bc.bf.zone!=='normal') bcAlerts.push(aal('warn','Body fat — '+bc.bf.zone,bc.bf.raw+'%'));
-  if(bc.vf?.zone&&bc.vf.zone!=='normal') bcAlerts.push(aal('warn','Visceral fat — '+bc.vf.zone,'Index '+bc.vf.raw));
-  if(bc.whr?.zone&&bc.whr.zone!=='normal') bcAlerts.push(aal('warn','Waist-height ratio — '+bc.whr.zone,(bc.whr.raw?.toFixed(2)??'—')));
-  if(bc.bmr?.raw) bcAlerts.push(aal('info','Estimated BMR',bc.bmr.raw.toFixed(0)+' kcal/day'));
+  if(bc.bmi?.zone&&bc.bmi.zone!=='normal') bcAlerts.push(aal('warn','BMI — '+bcZoneLabel(bc.bmi.zone),'BMI '+(bc.bmi.raw?.toFixed(1)??'—')+' kg/m²',true));
+  if(bc.wc?.zone&&bc.wc.zone!=='normal') bcAlerts.push(aal('warn','Waist — '+bcZoneLabel(bc.wc.zone),bc.wc.raw+' cm',true));
+  if(bc.bf?.zone&&bc.bf.zone!=='normal') bcAlerts.push(aal('warn','Body fat — '+bcZoneLabel(bc.bf.zone),bc.bf.raw+'%',true));
+  if(bc.vf?.zone&&bc.vf.zone!=='normal') bcAlerts.push(aal('warn','Visceral fat — '+bcZoneLabel(bc.vf.zone),'Index '+bc.vf.raw,true));
+  if(bc.whr?.zone&&bc.whr.zone!=='normal') bcAlerts.push(aal('warn','Waist-height ratio — '+bcZoneLabel(bc.whr.zone),(bc.whr.raw?.toFixed(2)??'—'),true));
+  if(bc.bmr?.raw){const bmrTitle=(currentLang==='en')?'Estimated BMR':'Estimasi BMR';const bmrDesc=(currentLang==='en')?bc.bmr.raw.toFixed(0)+' kcal/day — Basal Metabolic Rate: the minimum energy your body needs at rest to maintain basic functions (breathing, circulation, cell repair).':bc.bmr.raw.toFixed(0)+' kkal/hari — Basal Metabolic Rate: jumlah energi minimum yang dibutuhkan tubuh saat istirahat untuk mempertahankan fungsi dasar (pernapasan, sirkulasi, perbaikan sel).';bcAlerts.push(aal('info',bmrTitle,bmrDesc));}
   document.getElementById('r-bcal').innerHTML=bcAlerts.join('');
 }
 const alv=Math.round([ox.s,tx.s,mt.s,cr.s,100-nt.s,100-sk.s,dg.s||0,bc.s||0].reduce((a,b)=>a+b,0)/8);const alC=alv<=30?'cok':alv<=60?'cwarn':'cbad';se('k-al',alv+'%',alC);document.getElementById('k-all').textContent=alv<=30?'Low Stress':alv<=60?'Moderate Burden':'High Multisystem Stress';
@@ -2102,6 +2109,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
       if (typeof renderHrvPanel === 'function') renderHrvPanel();
+      if (typeof calcAll === 'function' &&
+          document.getElementById('r-bcs')?.textContent !== '—') {
+        calcAll();
+      }
       document.querySelectorAll('[data-gauge-label]').forEach(el => {
         const key = el.dataset.gaugeKey;
         if (key && typeof HRV_BAND_LABELS !== 'undefined') {
