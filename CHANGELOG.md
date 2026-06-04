@@ -2,6 +2,264 @@
 
 ---
 
+## 2026-06-04 — v6.1: Zone Engine Fix + B3 Phase 1 Label Translation
+
+### Status: SHIPPED ✓
+
+### Summary
+Five independent changes applied to `qrma-dashboard-v6.html` in the same session.
+HTML grew from 2,638 → 2,892 lines. Two new files added to `03_Scripts/`.
+`zone-scoring.js`, `hrv-engine.js`, `importer.js`, and all Python scripts unchanged.
+
+---
+
+### FIX 1 — All module scorers read stale window.zoneData
+
+**Root cause:** `window.zoneData` was only ever populated during CSV/JSON import.
+Every module scoring function (`cOx`, `cTx`, `cMt`, `cCr`, `cNt`, `cSk`, `cDg`)
+read zones exclusively from `window.zoneData`. Manual field edits after an import
+— or using the dashboard without any import — had zero effect on module scores,
+because nothing recomputed zones from the live DOM values.
+
+**Fix — three new module-scope functions + one change to `calcAll()`:**
+
+```javascript
+// Two helpers at module scope (accessible to all module functions):
+liveZone(val, dir, lo, hi)  // raw numeric value → zone string
+                             // dir 'hi': normal ≤ hi, ringan ≤ 1.5×hi, sedang ≤ 3×hi, berat > 3×hi
+                             // dir 'lo': normal ≥ lo, ringan ≥ 0.75×lo, sedang ≥ 0.5×lo, berat < 0.5×lo
+                             // dir 'bi': zones escalate by band-width steps in both directions
+set(id, dir, lo, hi)         // reads document.getElementById(id).value, calls liveZone(),
+                             // writes result to window.zoneData[id + '_zone']
+
+// Orchestrator — called as the very first line of calcAll():
+computeAllZones()            // calls set() for all 55 module fields across 7 modules
+```
+
+`calcAll()` first line changed from:
+```javascript
+function calcAll(){const ba=cBioAge(),...
+```
+to:
+```javascript
+function calcAll(){computeAllZones();const ba=cBioAge(),...
+```
+
+**Field coverage in `computeAllZones()` (55 fields):**
+
+| Module | Fields | Direction rule |
+|---|---|---|
+| Oxidative | ox-gsh, ox-coq, ox-vc, ox-ve, ox-sel, ox-fr, ox-hyp, ox-ph | lo (reserve) or hi/bi |
+| Toxic | tx-pb, tx-hg, tx-cd, tx-as, tx-st, tx-tb, tx-ps | hi (burden) |
+| Metabolic | mt-tg, mt-ug, mt-ins, mt-fm, mt-bmi, mt-wc | hi or bi; mt-wc uses male default 90 cm |
+| Cardio-Renal | cr-ch, cr-vf, cr-lv, cr-ua, cr-pt, cr-k, cr-mg | hi, lo, or bi |
+| Nutrient | nt-zn, nt-mg, nt-k, nt-io, nt-si, nt-b6, nt-vc, nt-d3, nt-ve, nt-fo | bi (normal ranges from PDF) |
+| Skin | sk-sc, sk-el, sk-tw, sk-sb, sk-ml, sk-sn, sk-ec, sk-jc | lo, hi, or bi |
+| Digestive | dg-lp, dg-la, dg-sp, dg-sa, dg-lc, dg-ca, dg-bi, dg-ip, dg-ds | bi, lo, or hi |
+
+**`cMt()` — additional changes (female waist + zone-based bmiP/wcP):**
+- Female waist threshold override: `if (gend === 'female' && wc > 0) { zd['mt-wc_zone'] = liveZone(wc, 'hi', null, 80); }` — `computeAllZones()` uses male default (90 cm); this corrects it for female patients before scoring.
+- `bmiP` and `wcP` changed from raw-numeric penalty formulas to zone-based:
+  - Before: `bmiP = bmi>25 ? Math.min((bmi-25)/10,1)*15 : 0`
+  - After:  `bmiP = bd('mt-bmi') * (100/9) * 0.15`
+  - Before: `wcP = wc>90 ? Math.min((wc-90)/30,1)*10 : 0`  (male)
+  - After:  `wcP = bd('mt-wc') * (100/9) * 0.10`
+
+**Test results (Node.js simulation):**
+
+| Test | Input | Before fix | After fix |
+|---|---|---|---|
+| Metabolic extreme | mt-tg=8, mt-ug=2.5, mt-ins=14, mt-fm=5.8, mt-wc=182 | ~30% (stale import zones) | mt.s=66, gc=89, lp=61 |
+| Oxidative extreme | gsh=0.2, coq=0.3, fr=7, sel=0.1, hyp=400, ph=8 | ~40% (stale) | ox.s=82 |
+| Regression (Ridwan) | mt-tg=5.8, mt-ug=2.514, mt-ins=2.866, mt-fm=6.2 | baseline | mt.s=43 (within ±15 of baseline) |
+
+---
+
+### FIX 2 — Bio Age pillar bars stuck on import-era zones
+
+**Root cause:** `cBioAge()` read `window.zoneData['bv_zone']`, `window.zoneData['cp_zone']`,
+etc. for all 18 Bio Age fields. These keys are never written by any code path other than
+CSV/JSON import. `computeAllZones()` (FIX 1) only covers prefixed module fields
+(`ox-*`, `tx-*`, `mt-*`, etc.) — the 18 unprefixed Bio Age fields (`bv`, `cp`, `art`, ...)
+are a separate key namespace. So even after FIX 1, the Bio Age pillar bars remained stuck.
+
+**Fix — inline threshold table + zone computer inside `cBioAge()`:**
+
+```javascript
+const BIO_THR = {
+  bv:  {lo:30,  hi:45,  dir:'hi'}, cp:  {lo:0,   hi:50,  dir:'hi'},
+  art: {lo:0,   hi:0.5, dir:'hi'}, ins: {lo:3.0,  hi:5.0, dir:'bi'},
+  bs:  {lo:4.4, hi:6.1, dir:'bi'}, fr:  {lo:0,    hi:3.0, dir:'hi'},
+  hyp: {lo:100, hi:150, dir:'hi'}, ph:  {lo:3.5,  hi:4.5, dir:'bi'},
+  pb:  {lo:0,   hi:1.2, dir:'hi'}, hg:  {lo:0,    hi:0.5, dir:'hi'},
+  ce:  {lo:0.7, hi:1.0, dir:'lo'}, cs:  {lo:4.0,  hi:6.0, dir:'lo'},
+  cj:  {lo:5.0, hi:7.0, dir:'lo'}, coq: {lo:1.0,  hi:2.0, dir:'lo'},
+  gsh: {lo:1.0, hi:2.0, dir:'lo'}, vc:  {lo:4.5,  hi:6.5, dir:'lo'},
+  ve:  {lo:5.0, hi:7.0, dir:'lo'}, ost: {lo:100,  hi:160, dir:'bi'},
+};
+```
+
+- `rawToZone(val, cfg)` applies the same `hi`/`lo`/`bi` logic as `liveZone()` (FIX 1).
+- Zones computed from live `g(fieldId)` values and immediately written back to
+  `window.zoneData` so `worstZone()` and the export pipeline stay consistent.
+- Old `burden()` inside `cBioAge()` previously returned neutral 5 for any field
+  whose zone wasn't in `window.zoneData` (i.e., almost always when using manual entry).
+
+**Test results (Node.js simulation):**
+
+| Test | Input | P1 | P2 | P3 | Bio Age Δ |
+|---|---|---|---|---|---|
+| Extreme (Test A) | bv=300, cp=150, art=25, ins=15, bs=8, fr=8, hyp=250, ph=6, pb=3, hg=2 | 8.2 High | 7.4 High | 9.0 High | +10 yrs |
+| Ridwan (Test B) | HTML defaults | 4.0 Mild | 4.0 Mild | 4.75 Mild | +5 yrs |
+
+---
+
+### FIX 3 — dg-redflag alarm-symptoms checkbox removed
+
+**Context / correction:** The v6.0 changelog entry lists *"dg-redflag checkbox missing →
+Added to Gut input panel"* as a shipped fix. This decision was subsequently reversed.
+The checkbox is now intentionally absent from the dashboard.
+
+**Reason for removal:** The `dg-redflag` checkbox was not a QRMA data field — it had
+no PDF value, no zone, no score contribution, and no export mapping. It created a
+non-recoverable code path where the operator could accidentally suppress the entire
+digestive score by checking a box with no obvious reset. The `dg-redflag` field was
+also added to `field_labels.json` in B3 Phase 1 before the removal decision was made;
+the `data-label-key="dg-redflag"` attribute is gone with the element, so the orphan
+entry in `field_labels.json` is harmless but may be cleaned up in a future pass.
+
+**What was removed:**
+- `<div class="igrp">` block containing the checkbox and its hint text
+- `<div id="r-dg-redflag">` result panel ("Clinical Review Required" alert)
+- `const rf = document.getElementById('dg-redflag')?.checked` from `cDg()`
+- Early-return `if(rf) return{s:null, redFlag:true, ...}` from `cDg()`
+- `redFlag:false` from `cDg()` return object
+- `else if(dg.redFlag){ ... }` render branch from `calcAll()`
+- All `dg.redFlag` / `d.dg.redFlag` checks from `buildAction()` and food-priority block
+- `dg-redflag` is **not** in `_ALL_FIELDS` (was never added there — confirmed)
+
+---
+
+### FIX 4 — "Digestive Pattern Flagged" hardcoded in English
+
+**Root cause:** The `r-dgal` alert element was set via:
+```javascript
+document.getElementById('r-dgal').innerHTML = dg.s>30 ?
+  aal('info', 'Digestive Pattern Flagged', 'Consider keeping a bowel diary...') : '';
+```
+This string was never routed through the language toggle, so it remained in English
+regardless of the `currentLang` setting.
+
+**Fix — two changes:**
+
+1. `calcAll()` render block now reads `currentLang` before writing `r-dgal`:
+```javascript
+const _dgLang  = (typeof currentLang !== 'undefined') ? currentLang : 'id';
+const _dgTitle = _dgLang === 'en' ? 'Digestive Pattern Flagged' : 'Pola Pencernaan Terdeteksi';
+const _dgDesc  = _dgLang === 'en'
+  ? 'Consider keeping a bowel diary and Bristol stool scale assessment...'
+  : 'Pertimbangkan untuk membuat catatan harian BAB dan penilaian skala Bristol...';
+document.getElementById('r-dgal').innerHTML = dg.s>30 ? aal('info', _dgTitle, _dgDesc) : '';
+```
+
+2. New `renderHrvStrip_Digestive()` function added at module scope — calls `cDg()` live
+   and re-renders `r-dgal` with the correct language. Added to the language toggle handler
+   immediately after `applyLabels(lang)`:
+```javascript
+if (typeof renderHrvStrip_Digestive === 'function') renderHrvStrip_Digestive();
+```
+
+Note: `hrv-engine.js` also defines a `renderHrvStrip_Digestive()` that renders the HRV
+vitals strip (`hrv-strip-dg`). The inline HTML version only updates `r-dgal` (the
+digestive alert text node) — these two functions do not conflict.
+
+---
+
+### B3 Phase 1 — Bilingual field label translation system
+
+**What was built:**
+
+`03_Scripts/field_labels.json` — source-of-truth translation table. Five languages:
+EN, ID, MS, VI, TH. Three namespaces: `fields` (60 field labels with `data-label-key`),
+`ui` (14 UI strings with `data-ui-key`), `modules` (10 module titles with `data-module-key`).
+Same-spelling fields marked `_same: true` for maintenance clarity.
+
+`03_Scripts/field_labels.js` — JS wrapper (332 lines) that sets `window.QRMA_LABELS`
+from the embedded JSON. Generated from `field_labels.json` — do not edit directly.
+
+`applyLabels(lang)` function added to HTML inline script block (near `getPillarLabel`):
+- Iterates `[data-label-key]` elements → updates direct text node, preserves child
+  `<span class="hint">` elements
+- Iterates `[data-ui-key]` elements → updates text node, preserves child icons
+- Iterates `[data-module-key]` elements → updates text node, preserves `<small>` subtitles
+- Falls back to `'en'` if the requested language key is absent
+
+**Wired into language toggle handler** (after `setLang`, before `btn.textContent`):
+```javascript
+if (typeof setLang === 'function') setLang(lang);
+if (typeof applyLabels === 'function') applyLabels(lang);
+if (typeof renderHrvStrip_Digestive === 'function') renderHrvStrip_Digestive();
+```
+
+**Applied on `DOMContentLoaded`** (after `lucide.createIcons()`):
+```javascript
+if (typeof applyLabels === 'function') applyLabels('id');
+```
+Dashboard now opens in Indonesian by default (matching the `ID` toggle button state).
+
+**Script load order updated** — `field_labels.js` must load before the inline block:
+```html
+<script src="03_Scripts/field_labels.js"></script>
+<script src="03_Scripts/zone-scoring.js"></script>
+<script src="03_Scripts/hrv-engine.js"></script>
+<script src="03_Scripts/importer.js"></script>
+```
+
+**Functional verification (Node.js):** 10 representative fields tested with
+`applyLabels('id')` then `applyLabels('en')` — 20/20 PASS including same-spelling
+fields (`ox-sel` Selenium, `coq` CoQ10) and long composite keys (`bc-whr`).
+
+**B3 Phase 2 (deferred):** `bmr()` span labels — field name text nodes inside the
+result panel are still hardcoded English. These are generated by `calcAll()` render
+code, not by static HTML attributes, so they need a different approach.
+
+**B3 Phase 3 (deferred):** `en_display`/`id_display` fields in `mappings.json` —
+for the PDF pipeline and import confirmation modal.
+
+---
+
+### Files Created
+- `03_Scripts/field_labels.json` — label translation source (330 lines)
+- `03_Scripts/field_labels.js` — JS wrapper setting `window.QRMA_LABELS` (332 lines)
+
+### Files Modified
+- `qrma-dashboard-v6.html` — 2,638 → 2,892 lines (+254):
+  - `<script src="03_Scripts/field_labels.js">` tag added to `<head>`
+  - `liveZone()`, `set()`, `computeAllZones()` added at module scope
+  - `calcAll()` first line: `computeAllZones();`
+  - `cBioAge()`: `BIO_THR` table + `rawToZone()` + zone write-back (replaces stale `zd` reads)
+  - `cMt()`: female waist override + zone-based `bmiP`/`wcP`
+  - `cDg()`: `dg-redflag` read and `redFlag` return path removed
+  - `calcAll()` render: `dg.redFlag` branch removed; bilingual `r-dgal` render
+  - `buildAction()`: all `d.dg.redFlag` guards removed; food-priority guard simplified
+  - `applyLabels(lang)` function added
+  - `renderHrvStrip_Digestive()` function added
+  - Language toggle: `applyLabels` + `renderHrvStrip_Digestive` calls added
+  - `DOMContentLoaded`: `applyLabels('id')` call added
+  - Digestive input panel: `dg-redflag` igrp block removed
+  - Result panel: `r-dg-redflag` div removed
+- `PROJECT_MAP.md` — §1 header, §2 status + build history, §3.1 file inventory + load order,
+  §4.4 bugs table, §5.2 scoring functions, §6.4 HRV API, §9 backlog, §11.3 code org,
+  §12 working rules (rules 12 + 13 added)
+
+### Files Unchanged
+- `03_Scripts/zone-scoring.js` — unmodified (confirmed by syntax check)
+- `03_Scripts/hrv-engine.js` — unmodified
+- `03_Scripts/importer.js` — unmodified
+- All Python scripts — unmodified
+
+---
+
 ## 2026-06-04 — v6.0: Body Composition Module (Module 10)
 
 ### Status: SHIPPED ✓
