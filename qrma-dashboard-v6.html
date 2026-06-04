@@ -556,9 +556,9 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
   <div class="panel">
     <div class="phd"><div><div class="ptit"><i data-lucide="heart-pulse" width="18" height="18"></i> Cardio-Renal Inputs</div><div class="psub">Ranks: Lower Concern / Monitor / Confirm with Labs</div></div><span class="badge bnl">Needs lab confirmation</span></div>
     <div class="ig">
-      <div class="igrp"><label class="ilb" for="cr-ch" data-label-key="cr-ch">Cholesterol Plaque Signal</label><input class="ifd" type="number" id="cr-ch" value="71.73" step="0.01"><div class="irg">Normal: &lt;50 | Confirm: fasting lipid panel</div></div>
-      <div class="igrp"><label class="ilb" for="cr-vf" data-label-key="cr-vf">Vascular Flexibility <span class="hint">(0-10)</span></label><input class="ifd" type="number" id="cr-vf" value="4.5" step="0.1" min="0" max="10"><div class="irg">Normal: &gt;6.0 | Confirm: BP monitoring</div></div>
-      <div class="igrp"><label class="ilb" for="cr-lv" data-label-key="cr-lv">LV Ejection Resistance <span class="hint">(0-10)</span></label><input class="ifd" type="number" id="cr-lv" value="5.2" step="0.1" min="0" max="10"><div class="irg">Normal: &lt;5.0 | Confirm: ECG</div></div>
+      <div class="igrp"><label class="ilb" for="cr-ch" data-label-key="cr-ch">Cholesterol Plaque Signal</label><input class="ifd" type="number" id="cr-ch" value="62.14" step="0.01"><div class="irg">Normal: 56.749&#8211;67.522 | Confirm: fasting lipid panel</div></div>
+      <div class="igrp"><label class="ilb" for="cr-vf" data-label-key="cr-vf">Vascular Flexibility</label><input class="ifd" type="number" id="cr-vf" value="1.825" step="0.001" min="0" max="10"><div class="irg">Normal: 1.672&#8211;1.978 | Confirm: BP monitoring</div></div>
+      <div class="igrp"><label class="ilb" for="cr-lv" data-label-key="cr-lv">LV Ejection Resistance</label><input class="ifd" type="number" id="cr-lv" value="1.771" step="0.001" min="0" max="10"><div class="irg">Normal: 1.554&#8211;1.988 | Confirm: ECG</div></div>
       <div class="igrp"><label class="ilb" for="cr-ua" data-label-key="cr-ua">Uric Acid <span class="hint">(0-10)</span></label><input class="ifd" type="number" id="cr-ua" value="5.8" step="0.1" min="0" max="10"><div class="irg">Normal: 3.5-7.2 | Confirm: serum UA</div></div>
       <div class="igrp"><label class="ilb" for="cr-pt" data-label-key="cr-pt">Proteinuria Index <span class="hint">(0-10)</span></label><input class="ifd" type="number" id="cr-pt" value="3.2" step="0.1" min="0" max="10"><div class="irg">Normal: &lt;3.0 | Confirm: urinalysis, uACR</div></div>
       <div class="igrp"><label class="ilb" for="cr-k" data-label-key="cr-k">Potassium <span class="hint">(0-10)</span></label><input class="ifd" type="number" id="cr-k" value="0.838" step="0.001" min="0" max="10"><div class="irg">Normal: 0.689-0.987 | Confirm: serum electrolytes</div></div>
@@ -1667,10 +1667,12 @@ function computeAllZones() {
   set('mt-bmi', 'bi',  18.5,  24.9 );
   set('mt-wc',  'hi',  null,  90   );  // male default; female override in cMt()
   // ── Cardio-Renal ─────────────────────────────────────────────────────────
-  set('cr-ch',  'hi',  null,  50   );
-  set('cr-vf',  'lo',  6.0,   null );
-  set('cr-lv',  'hi',  null,  5.0  );
+  set('cr-ch',  'bi',  56.749, 67.522);
+  set('cr-vf',  'bi',  1.672,  1.978 );
+  set('cr-lv',  'bi',  1.554,  1.988 );
+  // TODO: verify cr-ua range against QRMA PDF — no mappings.json ref
   set('cr-ua',  'bi',  3.5,   7.2  );
+  // TODO: verify cr-pt range against QRMA PDF — no mappings.json ref
   set('cr-pt',  'hi',  null,  3.0  );
   set('cr-k',   'bi',  0.689, 0.987);
   set('cr-mg',  'bi',  0.568, 0.992);
