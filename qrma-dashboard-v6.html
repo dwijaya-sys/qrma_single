@@ -285,6 +285,7 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
 .bc-csv-note{font-size:var(--text-sm);color:var(--txtM);}
 .bc-csv-preview{font-size:var(--text-sm);background:var(--surf2);border:1px solid var(--brd);border-radius:var(--rmd);padding:var(--sp3) var(--sp4);margin-top:var(--sp2);display:none;}
 </style>
+  <script src="03_Scripts/field_labels.js"></script>
   <script src="03_Scripts/zone-scoring.js"></script>
   <script src="03_Scripts/hrv-engine.js"></script>
   <script src="03_Scripts/importer.js"></script>
@@ -972,6 +973,58 @@ function getPillarLabel(burden){
   const key=burden<3?'minimal':burden<5?'mild':burden<7?'moderate':'high';
   return labels[key][currentLang]||labels[key]['en'];
 }
+function applyLabels(lang) {
+  if (!window.QRMA_LABELS) return;
+  const fields  = window.QRMA_LABELS.fields  || {};
+  const ui      = window.QRMA_LABELS.ui      || {};
+  const modules = window.QRMA_LABELS.modules || {};
+
+  // Field labels — update text node only, preserve hint spans
+  document.querySelectorAll('[data-label-key]').forEach(el => {
+    const key  = el.dataset.labelKey;
+    const entry = fields[key];
+    if (!entry) return;
+    const translated = entry[lang] || entry['en'];
+    if (!translated) return;
+    for (const node of el.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+        node.textContent = translated + ' ';
+        break;
+      }
+    }
+  });
+
+  // UI element labels
+  document.querySelectorAll('[data-ui-key]').forEach(el => {
+    const key = el.dataset.uiKey;
+    const entry = ui[key];
+    if (!entry) return;
+    const translated = entry[lang] || entry['en'];
+    if (!translated) return;
+    for (const node of el.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+        node.textContent = ' ' + translated;
+        break;
+      }
+    }
+  });
+
+  // Module page titles — update text node only, preserve <small> subtitle
+  document.querySelectorAll('[data-module-key]').forEach(el => {
+    const key = el.dataset.moduleKey;
+    const entry = modules[key];
+    if (!entry) return;
+    const translated = entry[lang] || entry['en'];
+    if (!translated) return;
+    for (const node of el.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+        node.textContent = translated;
+        break;
+      }
+    }
+  });
+}
+
 function barPillar(label,val,ccls){
   const pct=Math.min(100,(val/10)*100);
   const fc=ccls.replace('c','f');
@@ -2122,6 +2175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       lang = lang === 'id' ? 'en' : 'id';
       if (typeof setLang === 'function') setLang(lang);
+      if (typeof applyLabels === 'function') applyLabels(lang);
       btn.textContent = lang.toUpperCase();
       document.querySelectorAll('[data-zone]').forEach(el => {
         if (typeof getBadge === 'function') el.textContent = getBadge(el.dataset.zone);
@@ -2159,6 +2213,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('exp-chv')?.setAttribute('aria-expanded','false');
     }
   });
+  if (typeof applyLabels === 'function') applyLabels('id');
 });
 
 // ---------- CSV IMPORT ----------
