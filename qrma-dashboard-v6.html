@@ -573,6 +573,7 @@ a,button,input,select{transition:color var(--tr),background var(--tr),border-col
       <div class="sc"><div class="sclb">Cardiac Index</div><div class="scval" id="r-cai">--</div><div class="scdesc" id="r-cai-desc">Vascular+LV+Cholesterol</div></div>
       <div class="sc"><div class="sclb">Renal Index</div><div class="scval" id="r-ri">--</div><div class="scdesc" id="r-ri-desc">Proteinuria+Uric acid</div></div>
     </div>
+    <div id="r-crbk" style="margin-top:var(--sp2);font-size:var(--text-sm);color:var(--txtM)"></div>
     <div id="r-cral" style="margin-top:var(--sp4)"></div>
   </div>
 </section>
@@ -1759,6 +1760,20 @@ const mtC=clrc(mt.s,30,60);document.getElementById('r-mt').style.display='block'
 const crC=clrc(cr.s,30,60);document.getElementById('r-cr').style.display='block';se('r-crs',cr.s+'%',crC);se('r-crl',lbl(cr.s,30,60),'');se('r-cai',cr.cai+'%',cr.cai<=20?'cok':cr.cai<=40?'cwarn':'cbad');
   se('r-ri', cr.ri+'%', cr.ri<=20?'cok':cr.ri<=40?'cwarn':'cbad');
   renderCrBreakdown();
+  (function(){
+    const crBk=document.getElementById('r-crbk');
+    if(!crBk) return;
+    const crTotal=Math.round(cr.cai*0.55+cr.ri*0.45);
+    const cCol=cr.cai<=30?'#437a22':cr.cai<=60?'#d19900':'#a13544';
+    const rCol=cr.ri <=30?'#437a22':cr.ri <=60?'#d19900':'#a13544';
+    const tCol=crTotal<=30?'#437a22':crTotal<=60?'#d19900':'#a13544';
+    crBk.innerHTML=
+      '<strong style="color:'+cCol+'">'+cr.cai+'%</strong>'
+      +' × 0.55 &nbsp;+&nbsp; '
+      +'<strong style="color:'+rCol+'">'+cr.ri+'%</strong>'
+      +' × 0.45 &nbsp;=&nbsp; '
+      +'<strong style="color:'+tCol+'">'+crTotal+'%</strong>';
+  })();
   const crA=[];if(cr.ch>50)crA.push(aal('warn','Elevated Cholesterol Signal','Confirm: Fasting lipid panel, ApoB.'));if(cr.vf<6)crA.push(aal('warn','Reduced Vascular Flexibility','Confirm: BP monitoring (ABPM), ABI.'));if(cr.pt>3)crA.push(aal('err','Proteinuria Signal Elevated','Confirm: Urinalysis, uACR, serum creatinine, eGFR.'));if(cr.ua>7.2)crA.push(aal('warn','Elevated Uric Acid Pattern','Confirm: Serum uric acid.'));if(!crA.length)crA.push(aal('ok','Cardio-Renal Signals Within Range','No critical strain flags detected.'));document.getElementById('r-cral').innerHTML=crA.join('');se('k-cr',cr.s+'%',crC);document.getElementById('k-crl').textContent=lbl(cr.s,30,60);
 const ntC=nt.s>=70?'cok':nt.s>=50?'cwarn':'cbad';const ntL=nt.s>=70?'Sufficient':nt.s>=50?'Borderline':'Deficient';document.getElementById('r-nt').style.display='block';se('r-nts',nt.s+'%',ntC);se('r-ntl',ntL,'');se('r-ntdef',nt.def+'','cbad');se('r-ntopt',nt.opt+'','cok');document.getElementById('r-ntbm').innerHTML='<div class="bml">'+nt.items.map(i=>bmr(i.n,i.v,i.zone==='normal'?'normal':i.zone==='ringan'?'borderline':'deficient',i.zone)).join('')+'</div>';document.getElementById('r-ntf').innerHTML=ftrow('Nutrient-Rich Foods',['Pumpkin Seeds (Zinc)','Dark Greens (Mg, Folate)','Bananas (K)','Seaweed (Iodine)','Salmon (D3, B6)','Chickpeas (Folate)','Sunflower Seeds (E)','Citrus (C)']);se('k-nt',nt.s+'%',ntC);document.getElementById('k-ntl').textContent=ntL;
 const skC=sk.s>=70?'cok':sk.s>=50?'cwarn':'cbad';const skL=sk.s>=70?'Resilient':sk.s>=50?'Moderate Concern':'Low Resilience';document.getElementById('r-sk').style.display='block';se('r-sks',sk.s+'%',skC);se('r-skl',skL,'');se('r-cli',sk.cl+'%',sk.cl>=70?'cok':sk.cl>=50?'cwarn':'cbad');se('r-bfi',sk.bf+'%',sk.bf>=70?'cok':sk.bf>=50?'cwarn':'cbad');document.getElementById('r-skbm').innerHTML='<div class="bml">'+bmr('Skin Collagen',     sk.sc, zbs('sk-sc','res'),(window.zoneData||{})['sk-sc_zone']||'unknown')+
