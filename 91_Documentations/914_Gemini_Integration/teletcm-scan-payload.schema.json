@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/teletcm-scan-payload.schema.json",
+  "title": "TeleTCM Scan Payload",
+  "description": "Stable QRMA/GDV scan payload for TeleTCM. GDV fields are retained but nullable so QRMA-only ingestion works now and GDV can be added later without a contract change.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["client", "session", "instrument", "rawdata", "hrv", "computed", "ai_context"],
+  "properties": {
+    "client": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["client_id", "name", "age", "gender"],
+      "properties": {
+        "client_id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "age": { "type": ["integer", "null"], "minimum": 0 },
+        "gender": { "type": ["string", "null"] }
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scan_id", "scan_date", "source", "language"],
+      "properties": {
+        "scan_id": { "type": "string", "minLength": 1 },
+        "scan_date": { "type": "string", "format": "date-time" },
+        "source": { "type": "string", "enum": ["dashboard", "import", "api"] },
+        "language": { "type": "string", "enum": ["en", "id"] }
+      }
+    },
+    "instrument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "qrma_present", "gdv_present"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["QRMA", "GDV", "both"] },
+        "qrma_present": { "type": "boolean" },
+        "gdv_present": { "type": "boolean" }
+      }
+    },
+    "rawdata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["qrma", "gdv"],
+      "properties": {
+        "qrma": {
+          "type": "object",
+          "description": "Raw QRMA payload as received from dashboard/import layer.",
+          "additionalProperties": true
+        },
+        "gdv": {
+          "description": "Raw GDV payload. Keep key present even when no GDV data exists yet.",
+          "oneOf": [
+            { "type": "object", "additionalProperties": true },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "hrv": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["present", "ali_band", "rmssd", "mean_hr", "quality", "recovery_state"],
+      "properties": {
+        "present": { "type": "boolean" },
+        "ali_band": { "type": ["string", "null"] },
+        "rmssd": { "type": ["number", "null"] },
+        "mean_hr": { "type": ["number", "null"] },
+        "quality": { "type": ["string", "null"] },
+        "recovery_state": { "type": ["string", "null"] }
+      }
+    },
+    "computed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "flagged_qrma_params",
+        "flagged_gdv_params",
+        "confirmed_correlations",
+        "cluster_scores",
+        "cluster_severity",
+        "primary_cluster",
+        "active_clusters",
+        "tcm_pattern_ids",
+        "primary_tcm_pattern",
+        "stress_index",
+        "energy_total",
+        "energy_reserve",
+        "lifestyle_scores",
+        "chakra_alignment"
+      ],
+      "properties": {
+        "flagged_qrma_params": {
+          "type": "array",
+          "items": { "type": ["object", "string"] },
+          "default": []
+        },
+        "flagged_gdv_params": {
+          "oneOf": [
+            { "type": "array", "items": { "type": ["object", "string"] } },
+            { "type": "null" }
+          ],
+          "default": null
+        },
+        "confirmed_correlations": {
+          "type": "array",
+          "items": { "type": ["object", "string"] },
+          "default": []
+        },
+        "cluster_scores": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["A", "B", "C"],
+          "properties": {
+            "A": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+            "B": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+            "C": { "type": ["number", "null"], "minimum": 0, "maximum": 100 }
+          }
+        },
+        "cluster_severity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["A", "B", "C"],
+          "properties": {
+            "A": { "type": "string", "enum": ["none", "mild", "moderate", "severe"] },
+            "B": { "type": "string", "enum": ["none", "mild", "moderate", "severe"] },
+            "C": { "type": "string", "enum": ["none", "mild", "moderate", "severe"] }
+          }
+        },
+        "primary_cluster": {
+          "type": ["string", "null"],
+          "enum": ["A", "B", "C", "AB", "AC", "BC", "ABC", "none", null]
+        },
+        "active_clusters": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["A", "B", "C"] },
+          "default": []
+        },
+        "tcm_pattern_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "primary_tcm_pattern": { "type": ["string", "null"] },
+        "stress_index": { "type": ["number", "null"] },
+        "energy_total": { "type": ["number", "null"] },
+        "energy_reserve": { "type": ["number", "null"] },
+        "lifestyle_scores": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": { "type": ["number", "string", "null"] }
+            },
+            { "type": "null" }
+          ],
+          "default": null
+        },
+        "chakra_alignment": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": { "type": ["number", "string", "null"] }
+            },
+            { "type": "null" }
+          ],
+          "default": null
+        }
+      }
+    },
+    "ai_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["red_flags", "practitioner_note", "requested_output"],
+      "properties": {
+        "red_flags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "practitioner_note": { "type": ["string", "null"] },
+        "requested_output": {
+          "type": "string",
+          "enum": ["synthesis", "patient_summary", "progress_narrative", "copilot"]
+        }
+      }
+    }
+  }
+}
